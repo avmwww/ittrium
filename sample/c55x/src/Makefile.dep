@@ -1,0 +1,3 @@
+# Depend
+test.o: kernel_config.h
+

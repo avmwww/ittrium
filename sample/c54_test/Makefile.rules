@@ -1,0 +1,62 @@
+##################################################################
+ASM = asm500
+CC = cl500
+RM = rm -f
+LNK = lnk500
+AR = ar500
+CP = cp -f
+MV = mv -p
+CAT = cat
+DD = dd
+MKDIR = mkdir -p
+#
+KERNEL_DIR ?= $(PWD)
+KERNEL_DEV = tms320c54x
+#
+OBJDIR = obj
+LISTDIR = list
+#
+#
+DEVREV = 548
+# C flags
+CFLAGS = -q -eo.o -ms -O3 -v$(DEVREV) -al -ff list -fr../$(OBJDIR)
+#CFLAGS +=  -I$(RTSLIB_DIR)/include -I$(DSPLIB_DIR)/include
+CFLAGS +=  -I. -I../include -isrc
+CFLAGS += -I$(KERNEL_DIR)/include -I$(KERNEL_DIR)/config/$(KERNEL_DEV)
+# ASM flags 
+# Generate warnings
+FLAGS = -pw -q -v$(DEVREV) \
+        -i$(KERNEL_DIR)/include -i$(KERNEL_DIR)/config/$(KERNEL_DEV) \
+        -i. -i../include -isrc
+#
+OBJS = $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
+OBJS += $(patsubst %.S,%_.o,$(filter %.S,$(SRCS)))
+LIST = $(patsubst %.c,%.lst,$(filter %.c,$(SRCS)))
+# Find objects in
+vpath %.o ../$(OBJDIR)
+# Find listing in
+vpath %.lst $(LISTDIR)
+
+# All
+all: sub
+# Create obj directory
+$(OBJDIR):
+	$(MKDIR) $(OBJDIR)
+# Create list directory
+$(LISTDIR):
+	$(MKDIR) $(LISTDIR)
+# All objects
+# Asm
+%_.o: %.S
+	$(ASM) $(FLAGS) $< ../$(OBJDIR)/$@
+# C
+%.o: %.c
+	$(CC) $(CFLAGS) $<
+
+# Clean
+clean:
+	$(RM) $(OBJS)
+	$(RM) $(LIST)
+
+# Naming our phony targets
+.PHONY: all clean

@@ -1,0 +1,63 @@
+##################################################################
+ASM = masm55
+CC = cl55
+RM = rm -rf
+LNK = lnk55
+AR = ar55
+CP = cp -f
+MV = mv -p
+CAT = cat
+DD = dd
+MKDIR = mkdir -p
+#
+KERNEL_DIR ?= $(PWD)/../..
+KERNEL_DEV = tms320c55x
+CG55_BIN_DIR = $(shell dirname `which $(CC)`)
+CG55_DIR = $(shell dirname $(CG55_BIN_DIR))
+#
+OBJDIR = obj
+LISTDIR = list
+#
+# C flags
+CFLAGS = -q -eo.o -O3 -al -ff list -fr../$(OBJDIR)
+CFLAGS += --memory_model=large
+CFLAGS +=  -I. -I../include -isrc
+CFLAGS += -I$(KERNEL_DIR)/include -I$(KERNEL_DIR)/config/$(KERNEL_DEV)
+CFLAGS += -I$(CG55_DIR)/include
+# ASM flags
+FLAGS = -pw -q -mk
+FLAGS += -i$(KERNEL_DIR)/include -i$(KERNEL_DIR)/config/$(KERNEL_DEV)
+FLAGS += -i. -i../include -isrc
+#
+LDFLAGS = -i$(CG55_DIR)/lib -lrts55x.lib
+#
+OBJS = $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
+OBJS += $(patsubst %.a55,%_.o,$(filter %.a55,$(SRCS)))
+LIST = $(patsubst %.c,%.lst,$(filter %.c,$(SRCS)))
+# Find objects in
+vpath %.o ../$(OBJDIR)
+# Find listing in
+vpath %.lst $(LISTDIR)
+
+# All
+all: sub
+# Create obj directory
+$(OBJDIR):
+	$(MKDIR) $(OBJDIR)
+# Create list directory
+$(LISTDIR):
+	$(MKDIR) $(LISTDIR)
+# All objects
+# Asm
+%_.o: %.a55
+	$(ASM) $(FLAGS) $< ../$(OBJDIR)/$@
+# C
+%.o: %.c
+	$(CC) $(CFLAGS) $<
+
+# Clean
+clean:
+	$(RM) $(OBJDIR) $(LISTDIR) $(TARGET)
+
+# Naming our phony targets
+.PHONY: all clean
