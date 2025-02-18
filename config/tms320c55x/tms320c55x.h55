@@ -1,0 +1,1087 @@
+;*******************************************************************************
+;* Watchdog Timer Registers                                                    *
+;*******************************************************************************
+WDTIM         .equ 0x4000   ; WD Timer Counter Register
+WDPRD         .equ 0x4001   ; WD Timer Period Register
+WDTCR         .equ 0x4002   ; WD Timer Control Register
+WDTCR2        .equ 0x4003   ; WD Timer Control Register 2
+;*******************************************************************************
+;* I2C MODULE REGISTERS                                                        *
+;*******************************************************************************
+I2CMDR        .equ 0x3C09   ; I2C Mode Register
+I2CIMR        .equ 0x3C01   ; I2C Interrupt Enable Register
+I2CIER        .equ 0x3C01   ; I2C Interrupt Enable Register
+I2CSTR        .equ 0x3C02   ; I2C Status Register
+I2CISRC       .equ 0x3C0A   ; I2C Interrupt Source Register
+I2CPSC        .equ 0x3C0C   ; I2C Prescaler Register
+I2CCLKL       .equ 0x3C03   ; I2C Clock Divider Low Register
+I2CCLKH       .equ 0x3C04   ; I2C Clock Divider High Register
+I2CSAR        .equ 0x3C07   ; I2C Slave Address Register
+I2COAR        .equ 0x3C00   ; I2C Own Address Register
+I2CCNT        .equ 0x3C05   ; I2C Data Count
+I2CDRR        .equ 0x3C06   ; I2C Data Receive Register
+I2CDXR        .equ 0x3C08   ; I2C Data Transmit Register
+I2CGPIO       .equ 0x3C0B   ; I2C General-Purpose Register
+;-------------------------------------------------------------------------------
+; I2CMDR
+;-------------------------------------------------------------------------------
+; Bits
+_I2CMDR_NACKMOD_  .equ 15
+_I2CMDR_FREE_     .equ 14
+_I2CMDR_STT_      .equ 13
+_I2CMDR_IDLEEN_   .equ 12
+_I2CMDR_STP_      .equ 11
+_I2CMDR_MST_      .equ 10
+_I2CMDR_TRX_      .equ  9
+_I2CMDR_XA_       .equ  8
+_I2CMDR_RM_       .equ  7
+_I2CMDR_DLB_      .equ  6
+_I2CMDR_IRS_      .equ  5
+_I2CMDR_STB_      .equ  4
+_I2CMDR_FDF_      .equ  3
+_I2CMDR_BC_       .equ  0
+; Mask
+I2CMDR_NACKMOD   .equ 0x8000
+I2CMDR_FREE      .equ 0x4000
+I2CMDR_STT       .equ 0x2000
+I2CMDR_IDLEEN    .equ 0x1000
+I2CMDR_STP       .equ 0x0800
+I2CMDR_MST       .equ 0x0400
+I2CMDR_TRX       .equ 0x0200
+I2CMDR_XA        .equ 0x0100
+I2CMDR_RM        .equ 0x0080
+I2CMDR_DLB       .equ 0x0040
+I2CMDR_IRS       .equ 0x0020
+I2CMDR_STB       .equ 0x0010
+I2CMDR_FDF       .equ 0x0008
+I2CMDR_BC        .equ 0x0007
+;-------------------------------------------------------------------------------
+; I2CIER
+;-------------------------------------------------------------------------------
+; Bits
+_I2CIER_XRDY_    .equ  4
+_I2CIER_RRDY_    .equ  3
+_I2CIER_ARDY_    .equ  2
+_I2CIER_NACK_    .equ  1
+_I2CIER_AL_      .equ  0
+; Mask
+I2CIER_XRDY      .equ 0x0010
+I2CIER_RRDY      .equ 0x0008
+I2CIER_ARDY      .equ 0x0004
+I2CIER_NACK      .equ 0x0002
+I2CIER_AL        .equ 0x0001
+;-------------------------------------------------------------------------------
+; I2CSTR
+;-------------------------------------------------------------------------------
+; Bits
+_I2CSTR_NACKSNT_ .equ 13
+_I2CSTR_BB_      .equ 12
+_I2CSTR_RSFULL_  .equ 11
+_I2CSTR_XSMT_    .equ 10
+_I2CSTR_AAS_     .equ  9
+_I2CSTR_AD0_     .equ  8
+_I2CSTR_XRDY_    .equ  4
+_I2CSTR_RRDY_    .equ  3
+_I2CSTR_ARDY_    .equ  2
+_I2CSTR_NACK_    .equ  1
+_I2CSTR_AL_      .equ  0
+; Mask
+I2CSTR_NACKSNT   .equ 0x2000
+I2CSTR_BB        .equ 0x1000
+I2CSTR_RSFULL    .equ 0x0800
+I2CSTR_XSMT      .equ 0x0400
+I2CSTR_AAS       .equ 0x0200
+I2CSTR_AD0       .equ 0x0100
+I2CSTR_XRDY      .equ 0x0010
+I2CSTR_RRDY      .equ 0x0008
+I2CSTR_ARDY      .equ 0x0004
+I2CSTR_NACK      .equ 0x0002
+I2CSTR_AL        .equ 0x0001
+;-------------------------------------------------------------------------------
+; I2CISRC
+;-------------------------------------------------------------------------------
+; Bits
+_I2CISRC_TESTMD_  .equ 8
+_I2CISRC_INTCODE_ .equ 0
+; Mask
+I2CISRC_TESTMD    .equ 0x0F00
+I2CISRC_INTCODE   .equ 0x0007
+; I2CISRC INTCODE
+I2CISRC_INTCODE_XRDY   .equ 5
+I2CISRC_INTCODE_RRDY   .equ 4
+I2CISRC_INTCODE_ARDY   .equ 3
+I2CISRC_INTCODE_NACK   .equ 2
+I2CISRC_INTCODE_AL     .equ 1
+I2CISRC_INTCODE_NONE   .equ 0
+;-------------------------------------------------------------------------------
+; Macroses
+;-------------------------------------------------------------------------------
+ENABLE_I2C_INT         .macro
+		       OR #1<<7, *(IER1)
+                       .endm
+DISABLE_I2C_INT        .macro
+		       AND #~(1<<7), *(IER1)
+                       .endm
+;-------------------------------------------------------------------------------
+;*******************************************************************************
+; IDLE module
+;*******************************************************************************
+; Idle Control Register
+IDLE_ICR                .equ 0x0001
+; Idle Status Register
+IDLE_ISTR               .equ 0x0002
+;
+ICR_EMIFI               .equ 5
+ICR_CLKGENI             .equ 4
+ICR_PERI                .equ 3
+ICR_CACHEI              .equ 2
+ICR_DMAI                .equ 1
+ICR_CPUI                .equ 0
+;*******************************************************************************
+; PLL module
+;*******************************************************************************
+PLL_CLKMD               .equ 0x1C00
+PLL_IAI                 .equ 0x4000
+PLL_IOB                 .equ 0x2000
+PLL_TEST                .equ 0x1000
+PLL_ENABLE              .equ 0x0010
+PLL_BREAKLN             .equ 0x0002
+PLL_LOCK                .equ 0x0001
+                      .asg "<<5", CLKMD_PLL_DIV
+                      .asg "<<7", CLKMD_PLL_MULT
+_PLL_LOCK               .equ 0
+;*******************************************************************************
+; EMIF module
+;*******************************************************************************
+EGCR               .equ 0x0800 ; EMIF Global Control Register xxxx xxxx 0010 xx00
+EMI_RST            .equ 0x0801 ; EMIF Global Reset Register xxxx xxxx xxxx xxxx
+EMI_BE             .equ 0x0802 ; EMIF Bus Error Status Register xx00 0000 0000 0000
+CE0_1              .equ 0x0803 ; EMIF CE0 Space Control Register 1 x010 1111 1111 1111
+CE0_2              .equ 0x0804 ; EMIF CE0 Space Control Register 2 0100 1111 1111 1111
+CE0_3              .equ 0x0805 ; EMIF CE0 Space Control Register 3 xxxx xxxx 0000 0000
+CE1_1              .equ 0x0806 ; EMIF CE1 Space Control Register 1 x010 1111 1111 1111
+CE1_2              .equ 0x0807 ; EMIF CE1 Space Control Register 2 0100 1111 1111 1111
+CE1_3              .equ 0x0808 ; EMIF CE1 Space Control Register 3 xxxx xxxx 0000 0000
+CE2_1              .equ 0x0809 ; EMIF CE2 Space Control Register 1 x010 1111 1111 1111
+CE2_2              .equ 0x080A ; EMIF CE2 Space Control Register 2 0101 1111 1111 1111
+CE2_3              .equ 0x080B ; EMIF CE2 Space Control Register 3 xxxx xxxx 0000 0000
+CE3_1              .equ 0x080C ; EMIF CE3 Space Control Register 1 x010 1111 1111 1111
+CE3_2              .equ 0x080D ; EMIF CE3 Space Control Register 2 0101 1111 1111 1111
+CE3_3              .equ 0x080E ; EMIF CE3 Space Control Register 3 xxxx xxxx 0000 0000
+SDC1               .equ 0x080F ; EMIF SDRAM Control Register 1 1111 1001 0100 1000
+SDPER              .equ 0x0810 ; EMIF SDRAM Period Register xxxx 0000 1000 0000
+SDCNT              .equ 0x0811 ; EMIF SDRAM Counter Register xxxx 0000 1000 0000
+EMIF_INIT          .equ 0x0812 ; EMIF SDRAM Init Register xxxx xxxx xxxx xxxx
+SDC2               .equ 0x0813 ; EMIF SDRAM Control Register 2 xxxx xx11 1111 1111
+SDC3               .equ 0x0814 ; EMIF SDRAM Control Register 3 0000 0000 0000 0111
+;*---------------------------------------------------*
+;* EGCR register                                     *
+;* --------------------------------------------------*
+;MEMFREQ(x)         .equ (x<<9)&0x0600 ;   10-9 bits
+                      .asg "<<9", MEMFREQ
+WPE                .equ 0x0080
+MEMCEN             .equ 0x0020
+ARDYOFF            .equ 0x0010
+ARDY               .equ 0x0008
+HOLD               .equ 0x0004
+HOLDA              .equ 0x0002
+NOHOLD             .equ 0x0001
+;*---------------------------------------------------*
+;* EMI_BE Register                                   *
+;* --------------------------------------------------*
+EMITIME           .equ 0x1000         ;   12
+EMICE3            .equ 0x0400         ;   10
+EMICE2            .equ 0x0200         ;    9
+EMICE1            .equ 0x0100         ;    8
+EMICE0            .equ 0x0080         ;    7
+EMIDMA            .equ 0x0040         ;    6
+EMIFBUS           .equ 0x0020         ;    5
+EMIEBUS           .equ 0x0010         ;    4
+EMIDBUS           .equ 0x0008         ;    3
+EMICBUS           .equ 0x0004         ;    2
+EMIPBUS           .equ 0x0001         ;    0
+
+;*---------------------------------------------------*
+;* CEn_1, CEn_2, CEn_3 Registers ( n = 1, 2, 3 )     *
+;* --------------------------------------------------*
+; CEn_1
+		.asg "<<12", MTYPE
+		.asg "<<8",  READ_SETUP
+		.asg "<<2",  READ_STROBE
+		.asg " ",    READ_HOLD
+; CEn_2
+		.asg "<<14", READ_EXT_HOLD
+		.asg "<<12", WRITE_EXT_HOLD
+		.asg "<<8",  WRITE_SETUP
+		.asg "<<2",  WRITE_STROBE
+		.asg " ",    WRITE_HOLD
+
+;READ_EXT_HOLD(x)   .equ (x<<14)&0xC000 ;   15-14
+;WRITE_EXT_HOLD(x)  .equ (x<<12)&0x3000 ;   13-12
+;WRITE_SETUP(x)     .equ (x<<8)&0x0F00  ;   11- 8
+;WRITE_STROBE(x)    .equ (x<<2)&0x00FC  ;    7- 2
+;WRITE_HOLD(x)      .equ x&0x0003       ;    1- 0
+; CEn_3
+		.asg " ",    EMITIMEOUT
+;EMITIMEOUT(x)      .equ x&0x00FF       ;    7- 0
+;* --------------------------------------------------*
+;* SDC1                                              *
+;* --------------------------------------------------*
+                  .asg "<<11", SDC1_TRC
+SDC1_4M_16        .equ  0x0000
+SDC1_8M_16        .equ  0x0400
+SDC1_RFEN         .equ  0x0100
+                  .asg "<<4", SDC1_TRCD
+                  .asg " ", SDC1_TRP
+;* --------------------------------------------------*
+;* SDC2                                              *
+;* --------------------------------------------------*
+SDC2_SDACC        .equ 0x4000
+                  .asg "<<8", SDC2_TMRD
+                  .asg "<<4", SDC2_TRAS
+                  .asg " "  , SDC2_TACTV2ACTV
+;-------------------------------------------------------------------------------
+;*******************************************************************************
+; ADC module
+;*******************************************************************************
+ADC_IN_ADCR             .equ 0x6800  ; ADC Control Register
+ADC_IN_ADDR             .equ 0x6801  ; ADC Data Register
+ADC_IN_ADCDR            .equ 0x6802  ; ADC Clock Divider Register
+ADC_IN_ADCCR            .equ 0x6803  ; ADC Clock Control Register
+; ADDR Register , bits
+_ADC_IN_BUSY             .equ 15
+ADC_IN_BUSY              .equ 0x8000
+ADC_IN_DATA              .equ 0x03FF
+; ADCR Register , bits
+_ADC_IN_START            .equ 15
+ADC_IN_START             .equ 0x8000
+;*******************************************************************************
+; TIMER module
+;*******************************************************************************
+TIM0                    .equ 0x1000 ;Timer Count Register, Timer #0
+PRD0                    .equ 0x1001 ;Period Register, Timer #0
+TCR0                    .equ 0x1002 ;Timer Control Register, Timer #0
+PRSC0                   .equ 0x1003 ;Timer Prescaler Register, Timer #0
+TIM1                    .equ 0x2400 ;Timer Count Register, Timer #1
+PRD1                    .equ 0x2401 ;Period Register, Timer #1
+TCR1                    .equ 0x2402 ;Timer Control Register, Timer #1
+PRSC1                   .equ 0x2403 ;Timer Prescaler Register, Timer #1
+; TCR Register
+TCR_IDLE_EN             .equ 0x8000
+TCR_INT_EXT             .equ 0x4000
+TCR_ERR_TIM             .equ 0x2000
+TCR_FUNC_00             .equ 0x0000
+TCR_FUNC_01             .equ 0x0800
+TCR_FUNC_10             .equ 0x1000
+TCR_FUNC_11             .equ 0x1800
+TCR_TLB                 .equ 0x0400
+TCR_SOFT                .equ 0x0200
+TCR_FREE                .equ 0x0100
+TCR_PWID2               .equ 0x0040
+TCR_PWID1               .equ 0x0000
+TCR_PWID4               .equ 0x0080
+TCR_PWID8               .equ 0x00C0
+TCR_ARB                 .equ 0x0020
+TCR_TSS                 .equ 0x0010
+TCR_CP                  .equ 0x0008
+TCR_POLAR               .equ 0x0004
+TCR_DATOUT              .equ 0x0002
+; bits
+_TCR_TLB                .equ 10
+_TCR_SOFT               .equ  9
+_TCR_FREE               .equ  8
+_TCR_ARB                .equ  5
+_TCR_TSS                .equ  4
+_TCR_CP                 .equ  3
+_TCR_POLAR              .equ  2
+_TCR_DATOUT             .equ  1
+; Macroses
+;===============================================================================
+ENABLE_TIMER1_INT      .macro
+		       OR #1<<6, *(IER1)
+		       .endm
+;===============================================================================
+DISABLE_TIMER1_INT     .macro
+		       AND #~(1<<6), *(IER1)
+		       .endm
+;*******************************************************************************
+; MCBSP module
+;*******************************************************************************
+MCBSP0                  .equ 0x2800
+MCBSP1                  .equ 0x2C00
+MCBSP2                  .equ 0x3000
+;
+DRR2  .equ 0x00
+DRR1  .equ 0x01
+DXR2  .equ 0x02
+DXR1  .equ 0x03
+SPCR2 .equ 0x04
+SPCR1 .equ 0x05
+RCR2  .equ 0x06
+RCR1  .equ 0x07
+XCR2  .equ 0x08
+XCR1  .equ 0x09
+SRGR2 .equ 0x0A
+SRGR1 .equ 0x0B
+MCR2  .equ 0x0C
+MCR1  .equ 0x0D
+RCERA .equ 0x0E
+RCERB .equ 0x0F
+XCERA .equ 0x10
+XCERB .equ 0x11
+PCR   .equ 0x12
+RCERC .equ 0x13
+RCERD .equ 0x14
+XCERC .equ 0x15
+XCERD .equ 0x16
+RCERE .equ 0x17
+RCERF .equ 0x18
+XCERE .equ 0x19
+XCERF .equ 0x1A
+RCERG .equ 0x1B
+RCERH .equ 0x1C
+XCERG .equ 0x1D
+XCERH .equ 0x1E
+
+; MCBSP0
+MCBSP0_DRR2  .equ 0x2800 ; Data Receive Register 2
+MCBSP0_DRR1  .equ 0x2801 ; Data Receive Register 1
+MCBSP0_DXR2  .equ 0x2802 ; Data Transmit Register 2
+MCBSP0_DXR1  .equ 0x2803 ; Data Transmit Register 1
+MCBSP0_SPCR2 .equ 0x2804 ; Serial Port Control Register 2
+MCBSP0_SPCR1 .equ 0x2805 ; Serial Port Control Register 1
+MCBSP0_RCR2  .equ 0x2806 ; Receive Control Register 2
+MCBSP0_RCR1  .equ 0x2807 ; Receive Control Register 1
+MCBSP0_XCR2  .equ 0x2808 ; Transmit Control Register 2
+MCBSP0_XCR1  .equ 0x2809 ; Transmit Control Register 1
+MCBSP0_SRGR2 .equ 0x280A ; Sample Rate Generator Register 2
+MCBSP0_SRGR1 .equ 0x280B ; Sample Rate Generator Register 1
+MCBSP0_MCR2  .equ 0x280C ; Multichannel Register 2
+MCBSP0_MCR1  .equ 0x280D ; Multichannel Register 1
+MCBSP0_RCERA .equ 0x280E ; Receive Channel Enable Register Partition A
+MCBSP0_RCERB .equ 0x280F ; Receive Channel Enable Register Partition B
+MCBSP0_XCERA .equ 0x2810 ; Transmit Channel Enable Register Partition A
+MCBSP0_XCERB .equ 0x2811 ; Transmit Channel Enable Register Partition B
+MCBSP0_PCR   .equ 0x2812 ; Pin Control Register
+MCBSP0_RCERC .equ 0x2813 ; Receive Channel Enable Register Partition C
+MCBSP0_RCERD .equ 0x2814 ; Receive Channel Enable Register Partition D
+MCBSP0_XCERC .equ 0x2815 ; Transmit Channel Enable Register Partition C
+MCBSP0_XCERD .equ 0x2816 ; Transmit Channel Enable Register Partition D
+MCBSP0_RCERE .equ 0x2817 ; Receive Channel Enable Register Partition E
+MCBSP0_RCERF .equ 0x2818 ; Receive Channel Enable Register Partition F
+MCBSP0_XCERE .equ 0x2819 ; Transmit Channel Enable Register Partition E
+MCBSP0_XCERF .equ 0x281A ; Transmit Channel Enable Register Partition F
+MCBSP0_RCERG .equ 0x281B ; Receive Channel Enable Register Partition G
+MCBSP0_RCERH .equ 0x281C ; Receive Channel Enable Register Partition H
+MCBSP0_XCERG .equ 0x281D ; Transmit Channel Enable Register Partition G
+MCBSP0_XCERH .equ 0x281E ; Transmit Channel Enable Register Partition H
+; MCBSP1
+MCBSP1_DRR2  .equ 0x2C00 ; Data Receive Register 2
+MCBSP1_DRR1  .equ 0x2C01 ; Data Receive Register 1
+MCBSP1_DXR2  .equ 0x2C02 ; Data Transmit Register 2
+MCBSP1_DXR1  .equ 0x2C03 ; Data Transmit Register 1
+MCBSP1_SPCR2 .equ 0x2C04 ; Serial Port Control Register 2
+MCBSP1_SPCR1 .equ 0x2C05 ; Serial Port Control Register 1
+MCBSP1_RCR2  .equ 0x2C06 ; Receive Control Register 2
+MCBSP1_RCR1  .equ 0x2C07 ; Receive Control Register 1
+MCBSP1_XCR2  .equ 0x2C08 ; Transmit Control Register 2
+MCBSP1_XCR1  .equ 0x2C09 ; Transmit Control Register 1
+MCBSP1_SRGR2 .equ 0x2C0A ; Sample Rate Generator Register 2
+MCBSP1_SRGR1 .equ 0x2C0B ; Sample Rate Generator Register 1
+MCBSP1_MCR2  .equ 0x2C0C ; Multichannel Register 2
+MCBSP1_MCR1  .equ 0x2C0D ; Multichannel Register 1
+MCBSP1_RCERA .equ 0x2C0E ; Receive Channel Enable Register Partition A
+MCBSP1_RCERB .equ 0x2C0F ; Receive Channel Enable Register Partition B
+MCBSP1_XCERA .equ 0x2C10 ; Transmit Channel Enable Register Partition A
+MCBSP1_XCERB .equ 0x2C11 ; Transmit Channel Enable Register Partition B
+MCBSP1_PCR   .equ 0x2C12 ; Pin Control Register
+MCBSP1_RCERC .equ 0x2C13 ; Receive Channel Enable Register Partition C
+MCBSP1_RCERD .equ 0x2C14 ; Receive Channel Enable Register Partition D
+MCBSP1_XCERC .equ 0x2C15 ; Transmit Channel Enable Register Partition C
+MCBSP1_XCERD .equ 0x2C16 ; Transmit Channel Enable Register Partition D
+MCBSP1_RCERE .equ 0x2C17 ; Receive Channel Enable Register Partition E
+MCBSP1_RCERF .equ 0x2C18 ; Receive Channel Enable Register Partition F
+MCBSP1_XCERE .equ 0x2C19 ; Transmit Channel Enable Register Partition E
+MCBSP1_XCERF .equ 0x2C1A ; Transmit Channel Enable Register Partition F
+MCBSP1_RCERG .equ 0x2C1B ; Receive Channel Enable Register Partition G
+MCBSP1_RCERH .equ 0x2C1C ; Receive Channel Enable Register Partition H
+MCBSP1_XCERG .equ 0x2C1D ; Transmit Channel Enable Register Partition G
+MCBSP1_XCERH .equ 0x2C1E ; Transmit Channel Enable Register Partition H
+; MCBSP2
+MCBSP2_DRR2  .equ 0x3000 ; Data Receive Register 2
+MCBSP2_DRR1  .equ 0x3001 ; Data Receive Register 1
+MCBSP2_DXR2  .equ 0x3002 ; Data Transmit Register 2
+MCBSP2_DXR1  .equ 0x3003 ; Data Transmit Register 1
+MCBSP2_SPCR2 .equ 0x3004 ; Serial Port Control Register 2
+MCBSP2_SPCR1 .equ 0x3005 ; Serial Port Control Register 1
+MCBSP2_RCR2  .equ 0x3006 ; Receive Control Register 2
+MCBSP2_RCR1  .equ 0x3007 ; Receive Control Register 1
+MCBSP2_XCR2  .equ 0x3008 ; Transmit Control Register 2
+MCBSP2_XCR1  .equ 0x3009 ; Transmit Control Register 1
+MCBSP2_SRGR2 .equ 0x300A ; Sample Rate Generator Register 2
+MCBSP2_SRGR1 .equ 0x300B ; Sample Rate Generator Register 1
+MCBSP2_MCR2  .equ 0x300C ; Multichannel Register 2
+MCBSP2_MCR1  .equ 0x300D ; Multichannel Register 1
+MCBSP2_RCERA .equ 0x300E ; Receive Channel Enable Register Partition A
+MCBSP2_RCERB .equ 0x300F ; Receive Channel Enable Register Partition B
+MCBSP2_XCERA .equ 0x3010 ; Transmit Channel Enable Register Partition A
+MCBSP2_XCERB .equ 0x3011 ; Transmit Channel Enable Register Partition B
+MCBSP2_PCR   .equ 0x3012 ; Pin Control Register
+MCBSP2_RCERC .equ 0x3013 ; Receive Channel Enable Register Partition C
+MCBSP2_RCERD .equ 0x3014 ; Receive Channel Enable Register Partition D
+MCBSP2_XCERC .equ 0x3015 ; Transmit Channel Enable Register Partition C
+MCBSP2_XCERD .equ 0x3016 ; Transmit Channel Enable Register Partition D
+MCBSP2_RCERE .equ 0x3017 ; Receive Channel Enable Register Partition E
+MCBSP2_RCERF .equ 0x3018 ; Receive Channel Enable Register Partition F
+MCBSP2_XCERE .equ 0x3019 ; Transmit Channel Enable Register Partition E
+MCBSP2_XCERF .equ 0x301A ; Transmit Channel Enable Register Partition F
+MCBSP2_RCERG .equ 0x301B ; Receive Channel Enable Register Partition G
+MCBSP2_RCERH .equ 0x301C ; Receive Channel Enable Register Partition H
+MCBSP2_XCERG .equ 0x301D ; Transmit Channel Enable Register Partition G
+MCBSP2_XCERH .equ 0x301E ; Transmit Channel Enable Register Partition H
+;-------------------------------------------------------------------------------
+; SPCR1 register
+;-------------------------------------------------------------------------------
+SPCR1_DLB                 .equ 0x8000
+SPCR1_RJUST_RIGHT_ZERRO   .equ 0x0000
+SPCR1_RJUST_RIGHT_SIGN    .equ 0x2000
+SPCR1_RJUST_LEFT_ZERRO    .equ 0x4000
+SPCR1_RJUST_LEFT_SIGN     .equ 0x6000
+SPCR1_CLKSTP_DISABLE      .equ 0x0000
+SPCR1_CLKSTP_WO_CLK_DLY   .equ 0x1000
+SPCR1_CLKSTP_HALF_CLK_DLY .equ 0x1800
+SPCR1_DXENA               .equ 0x0080
+SPCR1_ABIS                .equ 0x0040
+SPCR1_RINTM_RRDY          .equ 0x0000
+SPCR1_RINTM_16_CHAN_BLOCK .equ 0x0010
+SPCR1_RINTM_FRAME_SYNC    .equ 0x0020
+SPCR1_RINTM_RSYNCERR      .equ 0x0030
+SPCR1_RSYNCERR            .equ 0x0008
+SPCR1_RFULL               .equ 0x0004
+SPCR1_RRDY                .equ 0x0002
+SPCR1_RRST_               .equ 0x0001
+; bits
+_SPCR1_RRDY               .equ 1
+;-------------------------------------------------------------------------------
+; SPCR2 register
+;-------------------------------------------------------------------------------
+SPCR2_FREE                .equ 0x0200
+SPCR2_SOFT                .equ 0x0100
+SPCR2_FRST_               .equ 0x0080
+SPCR2_GRST_               .equ 0x0040
+SPCR2_XINTM_XRDY          .equ 0x0000
+SPCR2_XINTM_16_CHAN_BLOCK .equ 0x0010
+SPCR2_XINTM_FRAME_SYNC    .equ 0x0020
+SPCR2_XINTM_XSYNCERR      .equ 0x0030
+SPCR2_XSYNCERR            .equ 0x0008
+SPCR2_XEMPTY_             .equ 0x0004
+SPCR2_XRDY                .equ 0x0002
+SPCR2_XRST_               .equ 0x0001
+; bits
+_SPCR2_XRDY               .equ 1
+;-------------------------------------------------------------------------------
+; RCR1
+;-------------------------------------------------------------------------------
+                          .asg "<<8", RCR1_RFRLEN1
+RCR1_RWDLEN1_8            .equ 0x0000
+RCR1_RWDLEN1_12           .equ 0x0020
+RCR1_RWDLEN1_16           .equ 0x0040
+RCR1_RWDLEN1_20           .equ 0x0060
+RCR1_RWDLEN1_24           .equ 0x0080
+RCR1_RWDLEN1_32           .equ 0x00A0
+;-------------------------------------------------------------------------------
+; RCR2
+;-------------------------------------------------------------------------------
+RCR2_RPHASE               .equ 0x8000
+                          .asg "<<8", RCR2_RFRLEN2
+RCR2_RWDLEN2_8            .equ 0x0000
+RCR2_RWDLEN2_12           .equ 0x0020
+RCR2_RWDLEN2_16           .equ 0x0040
+RCR2_RWDLEN2_20           .equ 0x0060
+RCR2_RWDLEN2_24           .equ 0x0080
+RCR2_RWDLEN2_32           .equ 0x00A0
+RCR2_RCOMPAND_NO_COMP_MSB .equ 0x0000
+RCR2_RCOMPAND_NO_COMP_LSB .equ 0x0008
+RCR2_RCOMPAND_MU_LAW      .equ 0x0010
+RCR2_RCOMPAND_A_LAW       .equ 0x0018
+RCR2_RFIG                 .equ 0x0004
+RCR2_RDATDLY_0_BIT        .equ 0x0000
+RCR2_RDATDLY_1_BIT        .equ 0x0001
+RCR2_RDATDLY_2_BIT        .equ 0x0002
+;-------------------------------------------------------------------------------
+; XCR1
+;-------------------------------------------------------------------------------
+                          .asg "<<8", XCR1_XFRLEN1
+XCR1_XWDLEN1_8            .equ 0x0000
+XCR1_XWDLEN1_12           .equ 0x0020
+XCR1_XWDLEN1_16           .equ 0x0040
+XCR1_XWDLEN1_20           .equ 0x0060
+XCR1_XWDLEN1_24           .equ 0x0080
+XCR1_XWDLEN1_32           .equ 0x00A0
+;-------------------------------------------------------------------------------
+; XCR2
+;-------------------------------------------------------------------------------
+XCR2_XPHASE               .equ 0x8000
+                          .asg "<<8", XCR2_XFRLEN2
+XCR2_XWDLEN2_8            .equ 0x0000
+XCR2_XWDLEN2_12           .equ 0x0020
+XCR2_XWDLEN2_16           .equ 0x0040
+XCR2_XWDLEN2_20           .equ 0x0060
+XCR2_XWDLEN2_24           .equ 0x0080
+XCR2_XWDLEN2_32           .equ 0x00A0
+XCR2_XCOMPAND_NO_COMP_MSB .equ 0x0000
+XCR2_XCOMPAND_NO_COMP_LSB .equ 0x0008
+XCR2_XCOMPAND_MU_LAW      .equ 0x0010
+XCR2_XCOMPAND_A_LAW       .equ 0x0018
+XCR2_XFIG                 .equ 0x0004
+XCR2_XDATDLY_0_BIT        .equ 0x0000
+XCR2_XDATDLY_1_BIT        .equ 0x0001
+XCR2_XDATDLY_2_BIT        .equ 0x0002
+;-------------------------------------------------------------------------------
+; SRGR1
+;-------------------------------------------------------------------------------
+                          .asg "<<8", SRGR1_FWID
+                          .asg "<<0", SRGR1_CLKGDV
+;-------------------------------------------------------------------------------
+; SRGR2
+;-------------------------------------------------------------------------------
+SRGR2_GSYNC               .equ 0x8000
+SRGR2_CLKSP               .equ 0x4000
+SRGR2_CLKSM               .equ 0x2000
+SRGR2_FSGM                .equ 0x1000
+                          .asg "<<0", SRGR2_FPER
+;-------------------------------------------------------------------------------
+; MCR1
+;-------------------------------------------------------------------------------
+MCR1_RMCME                .equ 0x0200
+MCR1_RPBBLK_1             .equ 0x0000
+MCR1_RPBBLK_3             .equ 0x0080
+MCR1_RPBBLK_5             .equ 0x0100
+MCR1_RPBBLK_7             .equ 0x0180
+MCR1_RPABLK_0             .equ 0x0000
+MCR1_RPABLK_2             .equ 0x0020
+MCR1_RPABLK_4             .equ 0x0040
+MCR1_RPABLK_6             .equ 0x0060
+MCR1_RCBLK_0              .equ 0x0000
+MCR1_RCBLK_1              .equ 0x0004
+MCR1_RCBLK_2              .equ 0x0008
+MCR1_RCBLK_3              .equ 0x000C
+MCR1_RCBLK_4              .equ 0x0010
+MCR1_RCBLK_5              .equ 0x0014
+MCR1_RCBLK_6              .equ 0x0018
+MCR1_RCBLK_7              .equ 0x001C
+MCR1_RMCM                 .equ 0x0001
+;-------------------------------------------------------------------------------
+; MCR2
+;-------------------------------------------------------------------------------
+MCR2_XMCME                .equ 0x0200
+MCR2_XPBBLK_1             .equ 0x0000
+MCR2_XPBBLK_3             .equ 0x0080
+MCR2_XPBBLK_5             .equ 0x0100
+MCR2_XPBBLK_7             .equ 0x0180
+MCR2_XPABLK_0             .equ 0x0000
+MCR2_XPABLK_2             .equ 0x0020
+MCR2_XPABLK_4             .equ 0x0040
+MCR2_XPABLK_6             .equ 0x0060
+MCR2_XCBLK_0              .equ 0x0000
+MCR2_XCBLK_1              .equ 0x0004
+MCR2_XCBLK_2              .equ 0x0008
+MCR2_XCBLK_3              .equ 0x000C
+MCR2_XCBLK_4              .equ 0x0010
+MCR2_XCBLK_5              .equ 0x0014
+MCR2_XCBLK_6              .equ 0x0018
+MCR2_XCBLK_7              .equ 0x001C
+; TODO XMCM bits 1-0
+MCR2_XMCM                 .equ 0x0001
+;-------------------------------------------------------------------------------
+; PCR
+;-------------------------------------------------------------------------------
+PCR_IDLE_EN               .equ 0x4000
+PCR_XIOEN                 .equ 0x2000
+PCR_RIOEN                 .equ 0x1000
+PCR_FSXM                  .equ 0x0800
+PCR_FSRM                  .equ 0x0400
+PCR_CLKXM                 .equ 0x0200
+PCR_CLKRM                 .equ 0x0100
+PCR_SCLKME                .equ 0x0080
+PCR_CLKS_STAT             .equ 0x0040
+PCR_DX_STAT               .equ 0x0020
+PCR_DR_STAT               .equ 0x0010
+PCR_FSXP                  .equ 0x0008
+PCR_FSRP                  .equ 0x0004
+PCR_CLKXP                 .equ 0x0002
+PCR_CLKRP                 .equ 0x0001
+
+_PCR_FSRP                 .equ 2
+_PCR_DR_STAT              .equ 4
+_PCR_CLKXP                .equ 1
+;*******************************************************************************
+; DMA module
+;*******************************************************************************
+DMA_GCR         .equ 0x0E00 ; DMA Global Control Register
+;
+DMA0                    .equ 0x0C00
+DMA1                    .equ 0x0C20
+DMA2                    .equ 0x0C40
+DMA3                    .equ 0x0C60
+DMA4                    .equ 0x0C80
+DMA5                    .equ 0x0CA0
+;
+DMA_CSDP                .equ 0x0000 ;// DMA Source Destination
+DMA_CCR                 .equ 0x0001 ;// DMA Control Register
+DMA_CICR                .equ 0x0002 ;// DMA Interrupt Control Register
+DMA_CSR                 .equ 0x0003 ;// DMA Status Register
+DMA_CSSA_L              .equ 0x0004 ;// DMA Source Start Address Register
+DMA_CSSA_U              .equ 0x0005 ;// DMA Source Start Address Register
+DMA_CDSA_L              .equ 0x0006 ;// DMA Source Destination Address Register
+DMA_CDSA_U              .equ 0x0007 ;// DMA Source Destination Address Register
+DMA_CEN                 .equ 0x0008 ;// DMA Element Number Register
+DMA_CFN                 .equ 0x0009 ;// DMA Frame Number Register
+DMA_CFI                 .equ 0x000A ;// DMA Frame Index Register
+DMA_CEI                 .equ 0x000B ;// DMA Element Index Register
+;-------------------------------------------------------------------------------
+; DMA_GCR
+;-------------------------------------------------------------------------------
+GCR_FREE        .equ 0x0004
+GCR_EHPI_EXCL   .equ 0x0002
+GCR_EHPI_PRIO   .equ 0x0001
+;-------------------------------------------------------------------------------
+; DMA_CCR
+;-------------------------------------------------------------------------------
+CCR_DST_AMODE_CONST        .equ 0x0000
+CCR_DST_AMODE_AUTO_INC     .equ 0x4000
+CCR_DST_AMODE_SINGLE_IDX   .equ 0x8000
+CCR_DST_AMODE_DOUBLE_IDX   .equ 0xC000
+CCR_SRC_AMODE_CONST        .equ 0x0000
+CCR_SRC_AMODE_AUTO_INC     .equ 0x1000
+CCR_SRC_AMODE_SINGLE_IDX   .equ 0x2000
+CCR_SRC_AMODE_DOUBLE_IDX   .equ 0x3000
+CCR_END_PROG               .equ 0x0800
+CCR_FIFO_FLUSH             .equ 0x0400
+CCR_REPEAT                 .equ 0x0200
+CCR_AUTOINIT               .equ 0x0100
+CCR_EN                     .equ 0x0080
+CCR_PRIO                   .equ 0x0040
+CCR_FS                     .equ 0x0020
+CCR_SYNC_NO                .equ 0x0000
+CCR_SYNC_MCBSP0_RX         .equ 0x0001
+CCR_SYNC_MCBSP0_TX         .equ 0x0002
+CCR_SYNC_MCBSP1_RX         .equ 0x0005
+CCR_SYNC_MCBSP1_TX         .equ 0x0006
+CCR_SYNC_MCBSP2_RX         .equ 0x0009
+CCR_SYNC_MCBSP2_TX         .equ 0x000A
+CCR_SYNC_TIMER1            .equ 0x000D
+CCR_SYNC_TIMER2            .equ 0x000E
+CCR_SYNC_EXT_INT0          .equ 0x000F
+CCR_SYNC_EXT_INT1          .equ 0x0010
+CCR_SYNC_EXT_INT2          .equ 0x0011
+CCR_SYNC_EXT_INT3          .equ 0x0012
+CCR_SYNC_I2C_RX            .equ 0x0013
+CCR_SYNC_I2C_TX            .equ 0x0014
+;-------------------------------------------------------------------------------
+; DMA_CSDP
+;-------------------------------------------------------------------------------
+;CSDP_DST_BEN               .equ 
+;CSDP_DST_PACK              .equ 
+CSDP_DST_SARAM             .equ 0x0000
+CSDP_DST_DARAM             .equ 0x0200
+CSDP_DST_EMIF              .equ 0x0400
+CSDP_DST_IOPORT            .equ 0x0600
+;CSDP_SRC_BEN               .equ 
+;CSDP_SRC_PACK              .equ 
+CSDP_SRC_SARAM             .equ 0x0000
+CSDP_SRC_DARAM             .equ 0x0004
+CSDP_SRC_EMIF              .equ 0x0008
+CSDP_SRC_IOPORT            .equ 0x000C
+CSDP_DATA_TYPE_8           .equ 0x0000
+CSDP_DATA_TYPE_16          .equ 0x0001
+CSDP_DATA_TYPE_32          .equ 0x0002
+;-------------------------------------------------------------------------------
+; CICR
+;-------------------------------------------------------------------------------
+CICR_BLOCK_IE              .equ 0x0020
+CICR_LAST_IE               .equ 0x0010
+CICR_FRAME_IE              .equ 0x0008
+CICR_HALF_IE               .equ 0x0004
+CICR_DROP_IE               .equ 0x0002
+CICR_TIMEOUT               .equ 0x0001
+; bits
+_CICR_BLOCK_IE              .equ 5
+_CICR_LAST_IE               .equ 4
+_CICR_FRAME_IE              .equ 3
+_CICR_HALF_IE               .equ 2
+_CICR_DROP_IE               .equ 1
+_CICR_TIMEOUT               .equ 0
+;-------------------------------------------------------------------------------
+; CSR
+;-------------------------------------------------------------------------------
+CSR_BLOCK_IE              .equ 0x0020
+CSR_LAST_IE               .equ 0x0010
+CSR_FRAME_IE              .equ 0x0008
+CSR_HALF_IE               .equ 0x0004
+CSR_DROP_IE               .equ 0x0002
+CSR_TIMEOUT               .equ 0x0001
+; bits
+_CSR_BLOCK_IE               .equ 5
+_CSR_LAST_IE                .equ 4
+_CSR_FRAME_IE               .equ 3
+_CSR_HALF_IE                .equ 2
+_CSR_DROP_IE                .equ 1
+_CSR_TIMEOUT                .equ 0
+;-------------------------------------------------------------------------------
+ENABLE_DMA0_INT             .macro
+		            OR #0x0004, *(IER1)
+		            .endm
+DISABLE_DMA0_INT            .macro
+		            AND #0xFFFB, *(IER1)
+		            .endm
+;-------------------------------------------------------------------------------
+ENABLE_DMA1_INT             .macro
+		            OR #0x0200, *(IER0)
+		            .endm
+DISABLE_DMA1_INT            .macro
+		            AND #0xFDFF, *(IER0)
+		            .endm
+;-------------------------------------------------------------------------------
+ENABLE_DMA2_INT             .macro
+		            OR #0x0010, *(IER1)
+		            .endm
+DISABLE_DMA2_INT            .macro
+		            AND #0xFFEF, *(IER1)
+		            .endm
+;-------------------------------------------------------------------------------
+ENABLE_DMA3_INT             .macro
+		            OR #0x0020, *(IER1)
+		            .endm
+DISABLE_DMA3_INT            .macro
+		            AND #0xFFDF, *(IER1)
+		            .endm
+;-------------------------------------------------------------------------------
+ENABLE_DMA4_INT             .macro
+		            OR #0x4000, *(IER0)
+		            .endm
+DISABLE_DMA4_INT            .macro
+		            AND #0xBFFF, *(IER0)
+		            .endm
+;-------------------------------------------------------------------------------
+ENABLE_DMA4_INT             .macro
+		            OR #0x8000, *(IER0)
+		            .endm
+DISABLE_DMA4_INT            .macro
+		            AND #0x7FFF, *(IER0)
+		            .endm
+;-------------------------------------------------------------------------------
+;*******************************************************************************
+; GPIO Module
+;*******************************************************************************
+GPIO_IODIR                 .equ 0x3400 ; General-purpose I/O Register
+GPIO_IODATA                .equ 0x3401 ; General-purpose I/O Data Register
+GPIO_AGPIOEN               .equ 0x4400 ; Address/GPIO Enable Register
+GPIO_AGPIODIR              .equ 0x4401 ; Address/GPIO Direction Register
+GPIO_AGPIODATA             .equ 0x4402 ; Address/GPIO Data Register
+;*******************************************************************************
+;* USB Module
+;*******************************************************************************
+; USB PLL Clock Generator
+USBCLKMD        .equ 0x1E00
+; USBCLKMD
+USBCLKMD_PLL_ENABLE   .equ 0x10
+                      .asg "<<5", USBCLKMD_PLL_DIV
+                      .asg "<<7", USBCLKMD_PLL_MULT
+; Defined by spru317
+USBREGBASE       .equ 0x5800 ; Base addres of USB module registers
+USBICNF0         .equ 0x6780 ; Configuration Register for IN Endpoint 0
+USBICT0          .equ 0x6781 ; Count Register for IN Endpoint 0
+USBOCNF0         .equ 0x6782 ; Configuration Register for OUT Endpoint 0
+USBOCT0          .equ 0x6783 ; Count Register for OUT Endpoint 0
+USBGCTL          .equ 0x6791 ; Global Control Register
+
+USBINTSRC        .equ 0x6792 ; Interrupt Source Register
+USBIEPIF         .equ 0x6793 ; Endpoint Interrupt Flag Register for OUT Endpoints
+USBOEPIF         .equ 0x6794 ; Endpoint Interrupt Flag Register for IN Endpoints
+
+USBIDRIF         .equ 0x6795 ; DMA RLD (reload) interrupt flag register for IN endpoints
+USBODRIF         .equ 0x6796 ; DMA RLD (reload) interrupt flag register for OUT endpoints
+USBIDGIF         .equ 0x6797 ; DMA GO interrupt flag register for IN endpoints
+USBODGIF         .equ 0x6798 ; DMA GO interrupt flag register for OUT endpoints
+USBIDIE          .equ 0x6799 ; DMA interrupt enable register for IN endpoints
+USBODIE          .equ 0x679A ; DMA interrupt enable register for OUT endpoints
+
+
+USBIEPIE         .equ 0x679B ; Endpoint Interrupt Enable Register for IN Endpoints
+USBOEPIE         .equ 0x679C ; Endpoint Interrupt Enable Register for OUT Endpoints
+
+USBCTL           .equ 0x67FC ; USB Control Register
+USBIE            .equ 0x67FD ; USB Interrupt Enable Register
+USBIF            .equ 0x67FE ; USB Interrupt Flag Register
+USBIDLECTL       .equ 0x7000 ; USB idle control
+USB_EP_DATA_BUF  .equ 0x5880 ; Contains X/Y data buffers for endpoints 1 - 7
+USB_SETUP_PACKET .equ 0x6700 ; Setup Packet for Endpoint
+USB_OEB_0        .equ 0x6680 ; Output Endpoint 0 Buffer
+USB_IEB_0        .equ 0x66C0 ; Input Endpoint 0 Buffer
+USBADDR          .equ 0x67FF ; USB Device Address Register
+USBFNUML         .equ 0x67F8 ; Frame Number Low
+USBFNUMH         .equ 0x67F9 ; Frame Number High
+
+
+; DMA context registers
+; addr = base + n*8
+; Control register
+USBODCTL         .equ 0x5800
+USBIDCTL         .equ 0x5840
+; Size register (transfer size in bytes)
+USBODSIZ         .equ 0x5801
+USBIDSIZ         .equ 0x5841
+; Address register, low part (byte address for a location in DSP memory)
+USBODADL         .equ 0x5802
+USBIDADL         .equ 0x5842
+; Address register, high part (byte address for a location in DSP memory)
+USBODADH         .equ 0x5803
+USBIDADH         .equ 0x5843
+; Count register (transfer count in bytes)
+USBODCT          .equ 0x5804
+USBIDCT          .equ 0x5844
+; Reload-size register (reload value for USBxDSIZ, x = O or I)
+USBODRSZ         .equ 0x5805
+USBIDRSZ         .equ 0x5845
+; Reload-address register, low part (reload value for USBxDADL, x = O or I)
+USBODRAL         .equ 0x5806
+USBIDRAL         .equ 0x5846
+; Reload-address register, high part (reload value for USBxDADH, x = O or I)
+USBODRAH         .equ 0x5807
+USBIDRAH         .equ 0x5847
+;------------------------------------------------------------------------------
+; USBDCTL
+;------------------------------------------------------------------------------
+USBDCTL_PM       .equ 0x0100
+USBDCTL_EM       .equ 0x0080
+USBDCTL_SHT      .equ 0x0040
+USBDCTL_CAT      .equ 0x0020
+USBDCTL_END      .equ 0x0010
+USBDCTL_OVF      .equ 0x0008
+USBDCTL_RLD      .equ 0x0004
+USBDCTL_STP      .equ 0x0002
+USBDCTL_GO       .equ 0x0001
+
+_USBDCTL_PM      .equ 8
+_USBDCTL_GO      .equ 0
+;------------------------------------------------------------------------------
+; USBINTSRC
+;------------------------------------------------------------------------------
+USBINTSRC_NO_INT     .equ       0x00
+USBINTSRC_OUT_EP_0   .equ       0x02
+USBINTSRC_IN_EP_0    .equ       0x04
+USBINTSRC_RSTR       .equ       0x06
+USBINTSRC_SUSR       .equ       0x08
+USBINTSRC_RESR       .equ       0x0A
+USBINTSRC_SETUP      .equ       0x0C
+USBINTSRC_STPOW      .equ       0x0E
+USBINTSRC_SOF        .equ       0x10
+USBINTSRC_PSOF       .equ       0x11
+
+;USBINTSRC_OUT_EP(n)        (((n)-1)*2 + 0x12)
+                     .asg "*2 + 0x10", USBINTSRC_OUT_EP
+USBINTSRC_OUT_EP_1   .equ       0x12
+USBINTSRC_OUT_EP_2   .equ       0x14
+USBINTSRC_OUT_EP_3   .equ       0x16
+USBINTSRC_OUT_EP_4   .equ       0x18
+USBINTSRC_OUT_EP_5   .equ       0x1A
+USBINTSRC_OUT_EP_6   .equ       0x1C
+USBINTSRC_OUT_EP_7   .equ       0x1E
+
+;USBINTSRC_IN_EP(n)        (((n)-1)*2 + 0x22)
+                              .asg "*2 + 0x20", USBINTSRC_IN_EP
+USBINTSRC_IN_EP_1             .equ 0x22
+USBINTSRC_IN_EP_2             .equ 0x24
+USBINTSRC_IN_EP_3             .equ 0x26
+USBINTSRC_IN_EP_4             .equ 0x28
+USBINTSRC_IN_EP_5             .equ 0x2A
+USBINTSRC_IN_EP_6             .equ 0x2C
+USBINTSRC_IN_EP_7             .equ 0x2E
+USBINTSRC_OUT_EP_1_DMA_RELOAD .equ 0x32
+USBINTSRC_OUT_EP_1_DMA_GO     .equ 0x33
+USBINTSRC_OUT_EP_2_DMA_RELOAD .equ 0x34
+USBINTSRC_OUT_EP_2_DMA_GO     .equ 0x35
+USBINTSRC_OUT_EP_3_DMA_RELOAD .equ 0x36
+USBINTSRC_OUT_EP_3_DMA_GO     .equ 0x37
+USBINTSRC_OUT_EP_4_DMA_RELOAD .equ 0x38
+USBINTSRC_OUT_EP_4_DMA_GO     .equ 0x39
+USBINTSRC_OUT_EP_5_DMA_RELOAD .equ 0x3A
+USBINTSRC_OUT_EP_5_DMA_GO     .equ 0x3B
+USBINTSRC_OUT_EP_6_DMA_RELOAD .equ 0x3C
+USBINTSRC_OUT_EP_6_DMA_GO     .equ 0x3D
+USBINTSRC_OUT_EP_7_DMA_RELOAD .equ 0x3E
+USBINTSRC_OUT_EP_7_DMA_GO     .equ 0x3F
+USBINTSRC_IN_EP_1_DMA_RELOAD  .equ 0x42
+USBINTSRC_IN_EP_1_DMA_GO      .equ 0x43
+USBINTSRC_IN_EP_2_DMA_RELOAD  .equ 0x44
+USBINTSRC_IN_EP_2_DMA_GO      .equ 0x45
+USBINTSRC_IN_EP_3_DMA_RELOAD  .equ 0x46
+USBINTSRC_IN_EP_3_DMA_GO      .equ 0x47
+USBINTSRC_IN_EP_4_DMA_RELOAD  .equ 0x48
+USBINTSRC_IN_EP_4_DMA_GO      .equ 0x49
+USBINTSRC_IN_EP_5_DMA_RELOAD  .equ 0x4A
+USBINTSRC_IN_EP_5_DMA_GO      .equ 0x4B
+USBINTSRC_IN_EP_6_DMA_RELOAD  .equ 0x4C
+USBINTSRC_IN_EP_6_DMA_GO      .equ 0x4D
+USBINTSRC_IN_EP_7_DMA_RELOAD  .equ 0x4E
+USBINTSRC_IN_EP_7_DMA_GO      .equ 0x4F
+USBINTSRC_HOST_INT            .equ 0x50
+USBINTSRC_HOST_ERROR          .equ 0x52
+;------------------------------------------------------------------------------
+; USBCTL
+;------------------------------------------------------------------------------
+USBCTL_CONN        .equ 0x80
+USBCTL_FEN         .equ 0x40
+USBCTL_RWUP        .equ 0x20
+USBCTL_FRSTE       .equ 0x10
+USBCTL_SETUP       .equ 0x02
+USBCTL_DIR         .equ 0x01
+;------------------------------------------------------------------------------
+; USBIDLECTL
+;------------------------------------------------------------------------------
+USBIDLECTL_USBRST    .equ 0x04
+USBIDLECTL_IDLESTAT  .equ 0x02
+USBIDLECTL_IDLEEN    .equ 0x01
+;------------------------------------------------------------------------------
+; USBxCNFn
+;------------------------------------------------------------------------------
+USBCNF_UBME         .equ 0x80
+USBCNF_ISO          .equ 0x40
+USBCNF_TOGGLE       .equ 0x20
+USBCNF_DBUF         .equ 0x10
+USBCNF_STALL        .equ 0x08
+                    .asg "<<3", USBCNF_CTXH
+                    .asg "<<0", USBCNF_CTYH
+_USBCNF_TOGGLE      .equ 5
+_USBCNF_STALL       .equ 3
+;------------------------------------------------------------------------------
+; USBxCTn
+;------------------------------------------------------------------------------
+USBCT_NACK          .equ 0x80
+;------------------------------------------------------------------------------
+; USB Interrupt Enable Register (USBIE)
+;------------------------------------------------------------------------------
+USBIE_RSTR          .equ 0x80
+USBIE_SUSR          .equ 0x40
+USBIE_RESR          .equ 0x20
+USBIE_SOF           .equ 0x10
+USBIE_PSOF          .equ 0x08
+USBIE_SETUP         .equ 0x04
+USBIE_STPOW         .equ 0x01
+;------------------------------------------------------------------------------
+; USB Interrupt Flag Register (USBIF)
+;------------------------------------------------------------------------------
+USBIF_RSTR          .equ 0x80
+USBIF_SUSR          .equ 0x40
+USBIF_RESR          .equ 0x20
+USBIF_SOF           .equ 0x10
+USBIF_PSOF          .equ 0x08
+USBIF_SETUP         .equ 0x04
+USBIF_STPOW         .equ 0x01
+
+USB_EP_DIR_IN       .equ 0x80
+USB_EP_DIR_OUT      .equ 0x00
+;------------------------------------------------------------------------------
+; Descriptor Registers for Each OUT or IN Endpoint(1-7)
+;------------------------------------------------------------------------------
+USBODESCR     .equ 0x6700
+USBIDESCR     .equ 0x6740
+; Endpoint n configuration register
+USBOCNF       .equ 0x6700
+USBICNF       .equ 0x6740
+; X-buffer base address register (bits 11-4 of a byte address)
+USBOBAX       .equ 0x6701
+USBIBAX       .equ 0x6741
+; X-buffer count register (transfer count in bytes)
+USBOCTX       .equ 0x6702
+USBICTX       .equ 0x6742
+; X-buffer count extension register (used for isochronous transfers only)
+USBOCTXH      .equ 0x6703
+; X-/Y-buffer size extension register (used for isochronous transfers only)
+USBISIZH      .equ 0x6743
+; X-/Y-buffer size register (transfer size in bytes)
+USBOSIZ       .equ 0x6704
+USBISIZ       .equ 0x6744
+; Y-buffer base address register (bits 11-4 of a byte address)
+USBOBAY       .equ 0x6705
+USBIBAY       .equ 0x6745
+; Y-buffer count register (transfer count in bytes)
+USBOCTY       .equ 0x6706
+USBICTY       .equ 0x6746
+; Y-buffer count extension register (used for isochronous transfers only)
+USBOCTYH      .equ 0x6707
+;------------------------------------------------------------------------------
+USB_EP_TYPE_CONTROL   .equ 0
+USB_EP_TYPE_BULK      .equ 0
+USB_EP_TYPE_INT       .equ 0
+USB_EP_TYPE_ISO       .equ USBCNF_ISO
+
+ENABLE_USB_INT      .macro
+                    OR #1<<8, *(IER0)
+                    .endm
+DISABLE_USB_INT     .macro
+                    AND #~(1<<8), *(IER0)
+                    .endm
+
+CLEAR_USB_INT       .macro
+                    MOV #1<<8, *(IFR0)
+                    .endm
+;*******************************************************************************
+;*******************************************************************************
+DISABLE_ALL_INTERRUPT  .macro
+		       BSET ST1_INTM
+		       .endm
+;-------------------------------------------------------------------------------
+ENABLE_ALL_INTERRUPT   .macro
+		       BCLR ST1_INTM
+		       .endm
+;-------------------------------------------------------------------------------
+LOCK_CPU               .macro
+		       BSET ST1_INTM
+		       .endm
+;-------------------------------------------------------------------------------
+UNLOCK_CPU             .macro
+		       BCLR ST1_INTM
+		       .endm
+;*******************************************************************************
+;*******************************************************************************
+
+; Vectors
+RESET_VECNO     .equ  0       ; Reset (hardware and software)
+NMI_VECNO       .equ  1       ; Nonmaskable interrupt
+INT0_VECNO      .equ  2       ; External interrupt #0
+INT2_VECNO      .equ  3       ; External interrupt #2
+TINT0_VECNO     .equ  4       ; Timer #0 interrupt
+RINT0_VECNO     .equ  5       ; McBSP #0 receive interrupt
+RINT1_VECNO     .equ  6       ; McBSP #1 receive interrupt
+XINT1_VECNO     .equ  7       ; McBSP #1 transmit interrupt
+MMCSD1_VECNO    .equ  7       ; MMC/SD #1 interrupt
+USB_VECNO       .equ  8       ; USB interrupt
+DMAC1_VECNO     .equ  9       ; DMA Channel #1 interrupt
+DSPINT_VECNO    .equ 10       ; Interrupt from host
+INT3_VECNO      .equ 11       ; External interrupt #3
+WDTINT_VECNO    .equ 11       ; Watchdog timer interrupt
+RINT2_VECNO     .equ 12       ; McBSP #2 receive interrupt
+XINT2_VECNO     .equ 13       ; McBSP #2 transmit interrupt
+MMCSD2_VECNO    .equ 13       ; MMC/SD #2 interrupt
+DMAC4_VECNO     .equ 14       ; DMA Channel #4 interrupt
+DMAC5_VECNO     .equ 15       ; DMA Channel #5 interrupt
+INT1_VECNO      .equ 16       ; External interrupt #1
+XINT0_VECNO     .equ 17       ; McBSP #0 transmit interrupt
+DMAC0_VECNO     .equ 18       ; DMA Channel #0 interrupt
+INT4_VECNO      .equ 19       ; External interrupt #4
+RTC_VECNO       .equ 19       ; RTC interrupt
+DMAC2_VECNO     .equ 20       ; DMA Channel #2 interrupt
+DMAC3_VECNO     .equ 21       ; DMA Channel #3 interrupt
+TINT1_VECNO     .equ 22       ; Timer #1 interrupt
+I2C_VECNO       .equ 23       ; I2C interrupt
+BERR_VECNO      .equ 24       ; Bus Error interrupt
+DLOG_VECNO      .equ 25       ; Data Log interrupt
+RTOS_VECNO      .equ 26       ; Real-time Operating System interrupt
+SINT27_VECNO    .equ 27       ; Software interrupt #27
+SINT28_VECNO    .equ 28       ; Software interrupt #28
+SINT29_VECNO    .equ 29       ; Software interrupt #29
+SINT30_VECNO    .equ 30       ; Software interrupt #30
+SINT31_VECNO    .equ 31       ; Software interrupt #31
+

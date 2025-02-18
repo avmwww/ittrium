@@ -1,0 +1,36 @@
+        .include  "tms320c55x.h55"
+        .include  "kernel_config.h55"
+
+; TCB structure, offsets   queue(prev, next); 
+TCB_sp  .set      4
+TCB_ssp .set      6
+TCB_pc  .set      8
+
+TCB_task   .set    10
+TCB_stk    .set    12
+TCB_sstk   .set    14
+TCB_stksz  .set    16
+TCB_exinf  .set    18
+
+        .ref _runtsk
+        .ref _schedtsk
+
+        .global _main
+
+        .ref cinit
+        .ref ___bss__
+        .ref ___pinit__
+        .ref ___end__
+
+;        .ref      _start,_interrupt
+;        .ref      _nest
+;        .ref      _INT_VECNO
+;        .ref      __kernel_reqflg
+;        .ref      __kernel_enadsp
+;        .ref      __kernel_runtsk,__kernel_schedtsk
+;        .ref      _int_table
+;        .ref      _int_mask_table
+;        .ref      _hardware_init_hook,_software_init_hook
+;        .ref      __kernel_calltex
+;        .ref      _kernel_start
+

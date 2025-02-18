@@ -1,0 +1,3 @@
+# Depend
+stacks.o: kernel_config.h
+

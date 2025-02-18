@@ -1,0 +1,11 @@
+; 100 000 kHz
+CPU_CLOCK             .set 100000
+; Ticker timer is Timer1
+TICKER                .set 1
+; Interrupt stack length
+INTERRUPT_STACK_LEN   .set 512
+
+; Set __low_level_init() function is used
+LOW_LEVEL_INIT  .set 1
+; CINT00_RESET .set 1
+

@@ -1,0 +1,7 @@
+#
+cpu_support_.o: cpu_support.a55
+ittrium.o: eventflags.c mailbox.c semaphore.c task.c time_manage.c timer.c \
+           tsk_dep_syn.c tsk_manage.c wait.c cpu_support.h kernel_config.h \
+           cpu_support.c
+
+

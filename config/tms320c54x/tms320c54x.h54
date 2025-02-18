@@ -1,0 +1,107 @@
+
+INT0            .set  0
+INT1            .set  1
+INT2            .set  2
+TINT0           .set  3
+
+RINT0           .set  4
+XINT0           .set  5
+
+TINT1           .set  7
+
+INT3            .set  8
+HPINT           .set  9
+RINT1           .set 10
+XINT1           .set 11
+
+DMAC0           .set  6
+DMAC1           .set  7
+DMAC2           .set 10
+DMAC3           .set 11
+DMAC4           .set 12
+DMAC5           .set 13
+
+
+RESET_VEC       .set  0
+NMI_VEC	        .set  1
+SINT17_VEC      .set  2
+SINT18_VEC      .set  3
+SINT19_VEC      .set  4
+SINT20_VEC      .set  5
+SINT21_VEC      .set  6
+SINT22_VEC      .set  7
+SINT23_VEC      .set  8
+SINT24_VEC      .set  9
+SINT25_VEC      .set 10
+SINT26_VEC      .set 11
+SINT27_VEC      .set 12
+SINT28_VEC      .set 13
+SINT29_VEC      .set 14
+SINT30_VEC      .set 15
+INT0_VEC        .set 16
+INT1_VEC        .set 17
+INT2_VEC        .set 18
+TINT0_VEC       .set 19
+RINT0_VEC       .set 20
+XINT0_VEC       .set 21
+DMAC0_VEC       .set 22
+TINT1_VEC       .set 23
+INT3_VEC        .set 24
+HPI_VEC         .set 25
+RINT1_VEC       .set 26
+XINT1_VEC       .set 27
+DMAC2_VEC       .set 26
+DMAC3_VEC       .set 27
+DMAC4_VEC       .set 28
+DMAC5_VEC       .set 29
+
+RS_TRAP         .set  0
+NMI_TRAP        .set  1
+INT0_TRAP       .set 16
+INT1_TRAP       .set 17
+INT2_TRAP       .set 18
+TINT_TRAP       .set 19
+RINT0_TRAP      .set 20
+XINT0_TRAP      .set 21
+DMAC0_TRAP      .set 22
+DMAC1_TRAP      .set 23
+INT3_TRAP       .set 24
+HPINT_TRAP      .set 25
+RINT1_TRAP      .set 26
+DMAC2_TRAP      .set 26
+XINT1_TRAP      .set 27
+DMAC3_TRAP      .set 27
+DMAC4_TRAP      .set 28
+DMAC5_TRAP      .set 29
+
+SINTR           .set  0
+SINT16          .set  1
+SINT17          .set  2
+SINT18          .set  3
+SINT19          .set  4
+SINT20          .set  5
+SINT21          .set  6
+SINT22          .set  7
+SINT23          .set  8
+SINT24          .set  9
+SINT25          .set 10
+SINT26          .set 11
+SINT27          .set 12
+SINT28          .set 13
+SINT29          .set 14
+SINT30          .set 15
+SINT0           .set 16
+SINT1           .set 17
+SINT2           .set 18
+SINT3           .set 19
+SINT4           .set 20
+SINT5           .set 21
+SINT6           .set 22
+SINT7           .set 23
+SINT8           .set 24
+SINT9           .set 25
+SINT10          .set 26
+SINT11          .set 27
+SINT12          .set 28
+SINT13          .set 29
+

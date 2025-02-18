@@ -1,0 +1,889 @@
+        .mmregs
+        .cpl_on
+        .c54cm_off
+        .arms_on
+        .align  1
+        .noremark 5503
+        .noremark 5505
+        .noremark 5571
+        .noremark 5573
+        .noremark 5601
+
+        .include  "ittrium.h55"
+
+;*******************************************************************************
+; Pointer to top of stack used in interrupts
+        .bss __int_stack, INTERRUPT_STACK_LEN, 0, 1
+__int_stack_top       .set __int_stack + INTERRUPT_STACK_LEN
+; Pointer to top of system stack used in interrupts
+        .bss __int_sysstack, INTERRUPT_STACK_LEN, 0, 1
+__int_sysstack_top    .set __int_sysstack + INTERRUPT_STACK_LEN
+;*******************************************************************************
+        .bss __int_vector_table, 64, 0, 1
+        .bss __int_nesting, 1, 0, 0
+        .bss __int_reta, 2, 0, 1
+;****************************************************************************
+
+        .text
+;*******************************************************************************
+
+_auto_init:
+        AADD #-1, SP
+;----------------------------------------------------------------------
+; Load address register with 23-bit address of cinit table
+;----------------------------------------------------------------------
+        AMOV #cinit, XAR0
+        NOT AR0, AR7
+;----------------------------------------------------------------------
+;  If table pointer is -1 then exit
+;----------------------------------------------------------------------
+        BCC PINIT, AR7==#0
+;----------------------------------------------------------------------
+; Copy data from .cinit section to .bss section
+;   AR2 = data length of current record (0 => finished)
+;   AC0 = 23-bit variable address in .bss section
+;   AC1 = Address space indicator (0 => DATA, 1 => IO)
+;----------------------------------------------------------------------
+LOOP:
+        MOV *AR0+, AR2
+        BCC PINIT, AR2==#0
+        MOV uns(*AR0+) << #8, AC0
+        || SUB #1, AR2
+        MOV uns(*AR0+), AC1
+        || MOV AR2, CSR
+        OR AC1 << #-8, AC0
+        AND #0xFF, AC1
+;----------------------------------------------------------------------
+; Load extended address register with 23-bit address of variable
+;----------------------------------------------------------------------
+        MOV AC0, XAR6
+;----------------------------------------------------------------------
+; Do the appropriate copy operation
+;----------------------------------------------------------------------
+        BCC PORTMEMCOPY, AC1 != #0
+
+DATAMEMCOPY:
+        RPT CSR
+         MOV *AR0+, *AR6+
+
+	B LOOP
+
+PORTMEMCOPY:
+        RPT CSR
+         MOV *AR0+, port(*AR6+)
+
+	B LOOP
+
+
+PINIT:		
+;----------------------------------------------------------------------
+; Call initialization routines found in pinit table
+;----------------------------------------------------------------------
+
+;----------------------------------------------------------------------
+; Reset address extension value
+;----------------------------------------------------------------------
+	AMOV #___bss__, XAR0
+;----------------------------------------------------------------------
+; Load extended address register with 23-bit address of pinit table
+;----------------------------------------------------------------------
+	AMOV #___pinit__, XAR6
+;----------------------------------------------------------------------
+;  If table pointer is -1 then exit
+;----------------------------------------------------------------------
+        NOT AR6, AR7
+        BCC EXIT, AR7==#0
+
+LOOP2:	
+;----------------------------------------------------------------------
+; AC0 = address of initialization routine to call (0 => finished)
+;----------------------------------------------------------------------
+        MOV dbl(*AR6+), AC0
+        BCC EXIT, AC0==#0
+
+;----------------------------------------------------------------------
+; Call Initialization Function. Save/restore address extension values
+; around the call to compiled code.   
+;----------------------------------------------------------------------
+        MOV AR6, *SP(#0)
+
+	AMOV #___bss__, XAR6
+
+        CALL AC0
+
+	AMOV #___pinit__, XAR6
+
+	MOV *SP(#0), AR6
+	B LOOP2	
+
+EXIT:
+;----------------------------------------------------------------------
+; Reset address extension value
+;----------------------------------------------------------------------
+        AMOV #___bss__, XAR6
+	AADD #1, SP
+        RET
+;*******************************************************************************
+
+        .global _c_int00
+_c_int00:
+        ; Initialize CPU
+        BSET ST1_INTM
+        AMOV #__int_stack_top, XSP
+        AMOV #__int_sysstack_top, XSSP
+        AMOV #__int_stack_top, XDP
+        NOP
+        NOP
+        NOP
+        MOV #0x3800, mmap(ST0_55)
+        MOV #0x2920, mmap(ST1_55)
+        MOV #0x7000, mmap(ST2_55)
+        MOV #0x1C00, mmap(ST3_55)
+        BCLR ST1_C54CM
+        .C54CM_off
+        BCLR ST1_M40
+        BSET ST1_SXMD
+        BSET ST3_CAEN
+        BSET ST3_CLKOFF
+        BCLR ST3_MPNMC
+        BCLR ST1_FRCT
+        BSET ST2_ARMS
+        .ARMS_on
+        BSET ST1_CPL
+        .cpl_on
+        MOV #0x0000, *(IER1)
+        MOV #0x0000, *(IER0)
+        MOV #0xFFFF, *(IFR1)
+        MOV #0xFFFF, *(IFR0)
+        MOV #(__int_vector<<-8), *(IVPD)
+        MOV #(__int_vector<<-8), *(IVPH)
+        ;********************************
+        AMOV #___bss__, XAR0
+        MOV XAR0, XAR1
+        MOV XAR0, XAR2
+        MOV XAR0, XAR3
+        MOV XAR0, XAR4
+        MOV XAR0, XAR5
+        MOV XAR0, XAR6
+        MOV XAR0, XAR7
+        MOV XAR0, XCDP
+        MOV XAR0, XDP
+        CALL #_auto_init
+        CALL #__int_init
+        .if $isdefed("LOW_LEVEL_INIT")
+        .ref __low_level_init
+        CALL #__low_level_init
+       .endif
+        ; To C world
+        CALL #_main
+;-------------------------------------------------------------------------------
+__int_idle:
+        AMOV #__int_stack_top, XSP
+        AMOV #__int_sysstack_top, XSSP
+        BCLR ST1_INTM
+__int_idle_loop:
+        IDLE
+        B __int_idle_loop
+;****************************************************************************
+;****************************************************************************
+__int_no_handler:
+        POP T0
+        ; Advisory CPU_94
+        MOV AR0, mmap(AR0)
+        ; Advisory CPU_99
+        .loop 6
+        NOP
+        .endloop
+        RETI
+;****************************************************************************
+__int_init:
+        AMOV #__int_vector_table, XAR2
+        AMOV #0, XAR1
+        RPT #31
+         MOV XAR1, dbl(*AR2+)
+        NOP
+        ;
+        MOV #0, *(#__int_nesting)
+        RET
+;****************************************************************************
+INSTALL_VECTOR  .macro
+        AMOV #__int_vector_table, XAR2
+        SFTL T0, #1
+        MOV AC0, dbl(*AR2(T0))
+                .endm
+
+        .global __install_handler
+__install_handler:
+        INSTALL_VECTOR
+        RET
+;****************************************************************************
+        .text
+        .newblock
+        .global __interrupt_handler
+__interrupt_handler:
+        PSHBOTH XAR0
+        PSH mmap(AC0G)
+        PSH dbl(AC0)
+        MOV #0x3800, mmap(ST0_55)
+        MOV #0x6900, mmap(ST1_55)
+        MOV #0xF000, mmap(ST2_55)
+        NOP
+        NOP
+        AMOV #__int_vector_table, XAR0
+        SFTL T0, #1
+        MOV dbl(*AR0(T0)), AC0
+        BCC exit?, AC0==#0
+        ;
+        PSH T1, mmap(AC1G)
+        PSH dbl(AC1)
+        PSH T2, mmap(AC2G)
+        PSH dbl(AC2)
+        PSH T3, mmap(AC3G)
+        PSH dbl(AC3)
+        PSHBOTH XAR1
+        PSHBOTH XAR2
+        PSHBOTH XAR3
+        PSHBOTH XAR4
+        PSHBOTH XAR5
+        PSHBOTH XAR6
+        PSHBOTH XAR7
+        PSH mmap(BRC0)
+        PSH mmap(RSA0L)
+        PSH mmap(RSA0H)
+        PSH mmap(REA0L)
+        PSH mmap(REA0H)
+        PSH mmap(BRS1)
+        PSH mmap(BRC1)
+        PSH mmap(RSA1L)
+        PSH mmap(RSA1H)
+        PSH mmap(REA1L)
+        PSH mmap(REA1H)
+        PSH mmap(CSR)
+        PSH mmap(RPTC)
+        PSH mmap(CDP)
+        PSH mmap(TRN0)
+        PSH mmap(TRN1)
+        PSH mmap(BSA01)
+        PSH mmap(BSA23)
+        PSH mmap(BSA45)
+        PSH mmap(BSA67)
+        PSH mmap(BSAC)
+        PSH mmap(ST3_55)
+        MOV RETA, dbl(*(#__int_reta))
+        MOV dbl(*(#__int_reta)), XAR0
+        PSHBOTH XAR0
+        ; IER0 or IER1
+        SFTL T0, #-1
+        MOV #15, AR1
+        CMPU T0>AR1, TC2 || NOP
+        XCCPART TC2
+        || SUB #16, T0
+        ;
+        CMP *(#__int_nesting)==#0, TC1
+        ADD #1, *(#__int_nesting)
+        BCC int_from_int?, !TC1
+        MOV dbl(*(#_runtsk)), AC1
+        BCC skip_save?, AC1==#0
+        ; Interrupt happens from task
+        ; Save current task stack pointers
+        MOV AC1, XAR0
+        MOV XSP, dbl(*AR0(#TCB_sp))
+        MOV XSSP, dbl(*AR0(#TCB_ssp))
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+skip_save?:
+        ;
+        AMOV #__int_stack_top, XSP
+        AMOV #__int_sysstack_top, XSSP
+        NOP
+        NOP
+        NOP
+        NOP
+        ;
+        PSH mmap(IER0)
+        PSH mmap(IER1)
+        ; Disable current interrupt
+        XCC TC2
+         BCLR T0, *(#IER1)
+        XCC !TC2
+         BCLR T0, *(#IER0)
+        ; Run interrupt handler
+        ;BCLR ST1_INTM
+        CALL AC0
+        BSET ST1_INTM
+        SUB #1, *(#__int_nesting)
+        ; Restore interrupt enable registers
+        POP mmap(IER1)
+        POP mmap(IER0)
+;-------------------------------------------------------------------------------
+        .global __dispatch_i
+__dispatch_i:
+        MOV dbl(*(#_schedtsk)), AC0
+        ; New task activated
+        MOV AC0, dbl(*(#_runtsk))
+        BCC __int_idle, AC0==#0
+        MOV AC0, XAR0
+        ; Restore task stack pointers
+        MOV dbl(*AR0(#TCB_sp)), XSP
+        MOV dbl(*AR0(#TCB_ssp)), XSSP
+        B __restote_context
+;-------------------------------------------------------------------------------
+; Interrupt happens from interrupt
+int_from_int?:
+        ; Save stack pointer and align it
+        MOV XSP, XAR1
+        MOV XSSP, XAR2
+        AND #0xFFFE, mmap(SP)
+        PSHBOTH XAR1
+        PSHBOTH XAR2
+        NOP
+        ;
+        PSH mmap(IER0)
+        PSH mmap(IER1)
+        ; Disable current interrupt
+        XCC TC2
+        BCLR T0, *(#IER1)
+        XCC !TC2
+        BCLR T0, *(#IER0)
+        ; Run interrupt handler
+        ;BCLR ST1_INTM
+        CALL AC0
+        BSET ST1_INTM
+        SUB #1, *(#__int_nesting)
+        ; Restore interrupt enable registers
+        POP mmap(IER1)
+        POP mmap(IER0)
+        ; Restore stack pointer
+        POPBOTH XAR2
+        POPBOTH XAR1
+        MOV XAR2, XSSP
+        MOV XAR1, XSP
+;-------------------------------------------------------------------------------
+__restote_context:
+        ; Restore context
+        POPBOTH XAR0
+        MOV XAR0, dbl(*(#__int_reta))
+        MOV dbl(*(#__int_reta)), RETA
+        POP mmap(ST3_55)
+        POP mmap(BSAC)
+        POP mmap(BSA67)
+        POP mmap(BSA45)
+        POP mmap(BSA23)
+        POP mmap(BSA01)
+        POP mmap(TRN1)
+        POP mmap(TRN0)
+        POP mmap(CDP)
+        POP mmap(RPTC)
+        POP mmap(CSR)
+        POP mmap(REA1H)
+        POP mmap(REA1L)
+        POP mmap(RSA1H)
+        POP mmap(RSA1L)
+        POP mmap(BRC1)
+        POP mmap(BRS1)
+        POP mmap(REA0H)
+        POP mmap(REA0L)
+        POP mmap(RSA0H)
+        POP mmap(RSA0L)
+        POP mmap(BRC0)
+        POPBOTH XAR7
+        POPBOTH XAR6
+        POPBOTH XAR5
+        POPBOTH XAR4
+        POPBOTH XAR3
+        POPBOTH XAR2
+        POPBOTH XAR1
+        POP dbl(AC3)
+        POP T3, mmap(AC3G)
+        POP dbl(AC2)
+        POP T2, mmap(AC2G)
+        POP dbl(AC1)
+        POP T1, mmap(AC1G)
+exit?:
+        POP dbl(AC0)
+        POP mmap(AC0G)
+        POPBOTH XAR0
+        POP T0
+ret_from_int:
+        ; Advisory CPU_94
+        MOV AR0, mmap(AR0)
+        ; Advisory CPU_99
+        .loop 6
+        NOP
+        .endloop
+        RETI
+;-------------------------------------------------------------------------------
+        .global __dispatch
+__dispatch:
+        MOV dbl(*(#_schedtsk)), AC0
+        MOV dbl(*(#_runtsk)), AC1
+        CMP AC0==AC1, TC1 || NOP
+        BCC ret_from_int, TC1
+        BCC skip_save_context, AC1==#0
+        ; Save current task context
+        PSH T0
+        PSHBOTH XAR0
+        PSH mmap(AC0G)
+        PSH dbl(AC0)
+        PSH T1, mmap(AC1G)
+        PSH dbl(AC1)
+        PSH T2, mmap(AC2G)
+        PSH dbl(AC2)
+        PSH T3, mmap(AC3G)
+        PSH dbl(AC3)
+        PSHBOTH XAR1
+        PSHBOTH XAR2
+        PSHBOTH XAR3
+        PSHBOTH XAR4
+        PSHBOTH XAR5
+        PSHBOTH XAR6
+        PSHBOTH XAR7
+        PSH mmap(BRC0)
+        PSH mmap(RSA0L)
+        PSH mmap(RSA0H)
+        PSH mmap(REA0L)
+        PSH mmap(REA0H)
+        PSH mmap(BRS1)
+        PSH mmap(BRC1)
+        PSH mmap(RSA1L)
+        PSH mmap(RSA1H)
+        PSH mmap(REA1L)
+        PSH mmap(REA1H)
+        PSH mmap(CSR)
+        PSH mmap(RPTC)
+        PSH mmap(CDP)
+        PSH mmap(TRN0)
+        PSH mmap(TRN1)
+        PSH mmap(BSA01)
+        PSH mmap(BSA23)
+        PSH mmap(BSA45)
+        PSH mmap(BSA67)
+        PSH mmap(BSAC)
+        PSH mmap(ST3_55)
+        MOV RETA, dbl(*(#__int_reta))
+        MOV dbl(*(#__int_reta)), XAR0
+        PSHBOTH XAR0
+        ; Save current task stack pointers
+        MOV AC1, XAR0
+        MOV XSP, dbl(*AR0(#TCB_sp))
+        MOV XSSP, dbl(*AR0(#TCB_ssp))
+skip_save_context:
+        ; Move scheduled task to runnig state
+        MOV AC0, dbl(*(#_runtsk))
+        BCC __int_idle, AC0==#0
+        MOV AC0, XAR0
+        ; Restore task stack pointers
+        MOV dbl(*AR0(#TCB_sp)), XSP
+        MOV dbl(*AR0(#TCB_ssp)), XSSP
+        B __restote_context
+;*******************************************************************************
+; void make_task_context(TCB *tcb)
+;*******************************************************************************
+        .newblock
+        .global _make_task_context
+_make_task_context:
+        MOV dbl(*AR0(#TCB_stk)), XAR1
+        MOV dbl(*AR0(#TCB_sstk)), XAR2
+        AMAR *+AR1(#-2)
+        AMAR *+AR2(#-2)
+        ; ST0_55
+        MOV #0x3800, *AR2-
+        ; ST2_55
+        MOV #0xF000, *AR1-
+        ; DBSTAT
+        MOV #0, *AR2-
+        ; ST1_55
+        MOV #0x6100, *AR1-
+        MOV dbl(*AR0(#TCB_task)), AC0
+        ; CFCT:RETA(23-16)
+        MOV HI(AC0), *AR2-
+        ; RETA(15-0)
+        MOV AC0, *AR1-
+        ; T0
+        MOV #0, *AR1-
+        MOV #0, *AR2-
+        ; exinf => XAR0
+        MOV dbl(*AR0(#TCB_exinf)), AC1
+        MOV AC1, *AR1-
+        MOV HI(AC1), *AR2-
+        ; Other registers
+        MOV #42, BRC0
+        RPTBLOCAL end_clear_stack?-1
+         MOV #0, *AR1-
+         MOV #0, *AR2-
+end_clear_stack?:
+
+;        AMAR *+AR1(#-46)
+;        AMAR *+AR2(#-46)
+        ; // ST3_55
+        MOV #0x5C04, *AR1-
+        MOV #0, *AR2-
+        ; CFCT:RETA(23-16)
+        MOV HI(AC0), *AR2
+        ; RETA(15-0)
+        MOV AC0, *AR1
+        ;
+        MOV XAR1, dbl(*AR0(#TCB_sp))
+        MOV XAR2, dbl(*AR0(#TCB_ssp))
+;TCB_task
+;TCB_stk 
+;TCB_sstk
+;TCB_stksz
+
+        RET
+;*******************************************************************************
+;*******************************************************************************
+        .text
+        .newblock
+        .global _ticker_init
+_ticker_init:
+        .if TICKER = 0
+TM_PRSC .equ PRSC0
+TM_PRD  .equ PRD0
+TM_TCR  .equ TCR0
+    .asg ENABLE_TIMER0_INT, ENABLE_TICKER_INT
+    .asg DISABLE_TIMER0_INT, DISABLE_TICKER_INT
+TIMER_VECNO          .equ TINT0_VECNO
+        .elseif TICKER = 1
+TM_PRSC .equ PRSC1
+TM_PRD  .equ PRD1
+TM_TCR  .equ TCR1
+    .asg ENABLE_TIMER1_INT, ENABLE_TICKER_INT
+    .asg DISABLE_TIMER1_INT, DISABLE_TICKER_INT
+TIMER_VECNO          .equ TINT1_VECNO
+        .else
+        .emsg "ERROR -- TIMER FOR TICKER NOT DEFINED"
+        .endif
+        ; Initialize timer
+        ; CPU_CLOCK => 1tic per 1 ms
+	MOV #3, port(#TM_PRSC)
+	MOV #CPU_CLOCK/(4)-1, port (#TM_PRD)
+	MOV #TCR_TLB|TCR_TSS, port(#TM_TCR)
+	MOV #TCR_ARB, port(#TM_TCR)
+	RET
+;*******************************************************************************
+;typedef struct{
+;    UW st_low;
+;    UW st_high;
+;}SYSTIM;
+;*******************************************************************************
+        .bss __system_ticks, 4, 0, 1
+        .bss __timer_nesting, 1, 0, 0
+        .global __system_ticks
+;*******************************************************************************
+        .text
+        .global _start_hw_timer
+        .global _timer_handler
+_start_hw_timer:
+        CALL #_ticker_init
+        MOV #TIMER_VECNO, T0
+        AMOV #_timer_handler, XAR1
+        MOV XAR1, AC0
+        INSTALL_VECTOR
+        ; Clear ticker counter
+        MOV #0, AC0
+        MOV AC0, dbl(*(#__system_ticks))
+        MOV AC0, dbl(*(#__system_ticks+2))
+        MOV #0, *(#__timer_nesting)
+        ENABLE_TICKER_INT
+        RET
+;****************************************************************************
+        .global _terminate_hw_timer
+_terminate_hw_timer:
+        DISABLE_TICKER_INT
+        RET
+;****************************************************************************
+; int timer_hw_enter(void);
+;****************************************************************************
+        .global _timer_hw_enter
+_timer_hw_enter:
+        ;BSET ST1_INTM
+        MOV #1000, AC1
+        MOV dbl(*(#__system_ticks)), AC0
+        ADD #1, AC0
+        CMPU AC0>=AC1, TC1|| NOP
+        XCCPART TC1
+        || MOV #0, AC0
+        MOV AC0, dbl(*(#__system_ticks))
+        MOV dbl(*(#__system_ticks+2)), AC0
+        XCCPART TC1
+        || ADD #1, AC0
+        MOV AC0, dbl(*(#__system_ticks+2))
+        ; Check nesting
+        MOV *(#__timer_nesting), T0
+        XCC T0 == #0
+         ADD #1, *(#__timer_nesting)
+        NOP
+        ; Allow timer interrupt
+        ;ENABLE_TIMER1_INT
+        ;BCLR ST1_INTM
+        RET
+;****************************************************************************
+; void timer_hw_exit(void)
+;****************************************************************************
+        .global _timer_hw_exit
+_timer_hw_exit:
+        ; Clear nesting
+        SUB #1, *(#__timer_nesting)
+        RET
+;****************************************************************************
+; Interrupt Vector Table
+;
+; 32 interrupt vector addresses.  Each is 64 bits long.  The first 32 bits
+; contains the 24-bit program address of the Interrupt Service Routine (ISR).
+; The second 32 bits are executed before transferring control to the ISR.
+;****************************************************************************
+__interrupt_handler_0:
+        PSH T0 || MOV #0, T0
+        B __interrupt_handler
+__interrupt_handler_2:
+        PSH T0 || MOV #2, T0
+        B __interrupt_handler
+__interrupt_handler_3:
+        PSH T0 || MOV #3, T0
+        B __interrupt_handler
+__interrupt_handler_4:
+        PSH T0 || MOV #4, T0
+        B __interrupt_handler
+__interrupt_handler_5:
+        PSH T0 || MOV #5, T0
+        B __interrupt_handler
+__interrupt_handler_6:
+        PSH T0 || MOV #6, T0
+        B __interrupt_handler
+__interrupt_handler_7:
+        PSH T0 || MOV #7, T0
+        B __interrupt_handler
+__interrupt_handler_8:
+        PSH T0 || MOV #8, T0
+        B __interrupt_handler
+__interrupt_handler_9:
+        PSH T0 || MOV #9, T0
+        B __interrupt_handler
+__interrupt_handler_10:
+        PSH T0 || MOV #10, T0
+        B __interrupt_handler
+__interrupt_handler_11:
+        PSH T0 || MOV #11, T0
+        B __interrupt_handler
+__interrupt_handler_12:
+        PSH T0 || MOV #12, T0
+        B __interrupt_handler
+__interrupt_handler_13:
+        PSH T0 || MOV #13, T0
+        B __interrupt_handler
+__interrupt_handler_14:
+        PSH T0 || MOV #14, T0
+        B __interrupt_handler
+__interrupt_handler_15:
+        PSH T0 || MOV #15, T0
+        B __interrupt_handler
+__interrupt_handler_16:
+        PSH T0 || MOV #16, T0
+        B __interrupt_handler
+__interrupt_handler_17:
+        PSH T0 || MOV #17, T0
+        B __interrupt_handler
+__interrupt_handler_18:
+        PSH T0 || MOV #18, T0
+        B __interrupt_handler
+__interrupt_handler_19:
+        PSH T0 || MOV #19, T0
+        B __interrupt_handler
+__interrupt_handler_20:
+        PSH T0 || MOV #20, T0
+        B __interrupt_handler
+__interrupt_handler_21:
+        PSH T0 || MOV #21, T0
+        B __interrupt_handler
+__interrupt_handler_22:
+        PSH T0 || MOV #22, T0
+        B __interrupt_handler
+__interrupt_handler_23:
+        PSH T0 || MOV #23, T0
+        B __interrupt_handler
+__interrupt_handler_24:
+        PSH T0 || MOV #24, T0
+        B __interrupt_handler
+__interrupt_handler_25:
+        PSH T0 || MOV #25, T0
+        B __interrupt_handler
+__interrupt_handler_26:
+        PSH T0 || MOV #26, T0
+        B __interrupt_handler
+__interrupt_handler_27:
+        PSH T0 || MOV #27, T0
+        B __interrupt_handler
+__interrupt_handler_28:
+        PSH T0 || MOV #28, T0
+        B __interrupt_handler
+__interrupt_handler_29:
+        PSH T0 || MOV #29, T0
+        B __interrupt_handler
+__interrupt_handler_30:
+        PSH T0 || MOV #30, T0
+        B __interrupt_handler
+;****************************************************************************
+;* Point Reset Vector to C Environment Entry Point
+;****************************************************************************
+; 0xFF8000
+	.sect	"vectors"
+        .global __int_vector
+__int_vector:
+        .if $isdefed("CINT00_RESET")
+_Reset:	.ivec _c_int00,     USE_RETA
+        .else
+_Reset:	.ivec 0xFF8000,     USE_RETA  ;C54X_STK
+        .endif
+nmi:	.ivec __int_no_handler
+int02:	.ivec __interrupt_handler_2
+int03:	.ivec __interrupt_handler_3
+int04:	.ivec __interrupt_handler_4
+int05:	.ivec __interrupt_handler_5
+int06:	.ivec __interrupt_handler_6
+int07:	.ivec __interrupt_handler_7
+int08:	.ivec __interrupt_handler_8
+int09:	.ivec __interrupt_handler_9
+int10:	.ivec __interrupt_handler_10
+int11:	.ivec __interrupt_handler_11
+int12:	.ivec __interrupt_handler_12
+int13:	.ivec __interrupt_handler_13
+int14:	.ivec __interrupt_handler_14
+int15:	.ivec __interrupt_handler_15
+int16:	.ivec __interrupt_handler_16
+int17:	.ivec __interrupt_handler_17
+int18:	.ivec __interrupt_handler_18
+int19:	.ivec __interrupt_handler_19
+int20:	.ivec __interrupt_handler_20
+int21:	.ivec __interrupt_handler_21
+int22:	.ivec __interrupt_handler_22
+int23:	.ivec __interrupt_handler_23
+int24:	.ivec __interrupt_handler_24
+int25:	.ivec __interrupt_handler_25
+int26:	.ivec __interrupt_handler_26
+int27:	.ivec __interrupt_handler_27
+int28:	.ivec __interrupt_handler_28
+int29:	.ivec __interrupt_handler_29
+int30:	.ivec __interrupt_handler_30
+int31:	.ivec __dispatch
+;===============================================================================
+        .end
+
+;!!!!!!!!! NOT USED !!!!!!!!!!
+;*******************************************************************************
+; void _context_switch();
+; Abstract:
+;    Save current task context (_runtsk) in to task stack
+;   and restore scheduled task context (_schedtsk) from its stack
+;   Space needed for switch = 46 words
+;*******************************************************************************
+        .newblock
+        .global __context_switch
+__context_switch:
+        ; Saves current task context => 46 words
+        PSH T0
+        PSHBOTH XAR0
+        PSH mmap(AC0G)
+        PSH dbl(AC0)
+        PSH T1, mmap(AC1G)
+        PSH dbl(AC1)
+        PSH T2, mmap(AC2G)
+        PSH dbl(AC2)
+        PSH T3, mmap(AC3G)
+        PSH dbl(AC3)
+        PSHBOTH XAR1
+        PSHBOTH XAR2
+        PSHBOTH XAR3
+        PSHBOTH XAR4
+        PSHBOTH XAR5
+        PSHBOTH XAR6
+        PSHBOTH XAR7
+        PSH mmap(ST3_55)
+        PSH mmap(BRC0)
+        PSH mmap(RSA0L)
+        PSH mmap(RSA0H)
+        PSH mmap(REA0L)
+        PSH mmap(REA0H)
+        PSH mmap(BRS1)
+        PSH mmap(BRC1)
+        PSH mmap(RSA1L)
+        PSH mmap(RSA1H)
+        PSH mmap(REA1L)
+        PSH mmap(REA1H)
+        PSH mmap(CSR)
+        PSH mmap(RPTC)
+        PSH mmap(CDP)
+        PSH mmap(TRN0)
+        PSH mmap(TRN1)
+        PSH mmap(BSA01)
+        PSH mmap(BSA23)
+        PSH mmap(BSA45)
+        PSH mmap(BSA67)
+        PSH mmap(BSAC)
+        ; Save current task stack pointers
+        MOV dbl(*(#_runtsk)), XAR0
+        MOV XSP, dbl(*AR0(#TCB_sp))
+        MOV XSSP, dbl(*AR0(#TCB_ssp))
+        ; Move scheduled task to runnig state
+        MOV dbl(*(#_schedtsk)), XAR0
+        MOV XAR0, dbl(*(#_runtsk))
+        ; Restore task stack pointers
+        MOV dbl(*AR0(#TCB_sp)), XSP
+        MOV dbl(*AR0(#TCB_ssp)), XSSP
+        NOP
+        NOP
+        NOP
+        NOP
+        ; Restore task context
+        POP mmap(BSAC)
+        POP mmap(BSA67)
+        POP mmap(BSA45)
+        POP mmap(BSA23)
+        POP mmap(BSA01)
+        POP mmap(TRN1)
+        POP mmap(TRN0)
+        POP mmap(CDP)
+        POP mmap(RPTC)
+        POP mmap(CSR)
+        POP mmap(REA1H)
+        POP mmap(REA1L)
+        POP mmap(RSA1H)
+        POP mmap(RSA1L)
+        POP mmap(BRC1)
+        POP mmap(BRS1)
+        POP mmap(REA0H)
+        POP mmap(REA0L)
+        POP mmap(RSA0H)
+        POP mmap(RSA0L)
+        POP mmap(BRC0)
+        POP mmap(ST3_55)
+        POPBOTH XAR7
+        POPBOTH XAR6
+        POPBOTH XAR5
+        POPBOTH XAR4
+        POPBOTH XAR3
+        POPBOTH XAR2
+        POPBOTH XAR1
+        POP dbl(AC3)
+        POP T3, mmap(AC3G)
+        POP dbl(AC2)
+        POP T2, mmap(AC2G)
+        POP dbl(AC1)
+        POP T1, mmap(AC1G)
+        POP dbl(AC0)
+        POP mmap(AC0G)
+        POPBOTH XAR0
+        POP T0
+        ; Advisory CPU_94
+        MOV AR0, mmap(AR0)
+        ; Advisory CPU_99
+        .loop 6
+        NOP
+        .endloop
+        RETI
+
+
+        
