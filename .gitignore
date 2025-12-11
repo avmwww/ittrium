@@ -7,3 +7,5 @@ obj/
 build/
 cache/
 tags
+list/
+*.lst
