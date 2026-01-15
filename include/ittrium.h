@@ -187,8 +187,6 @@ typedef struct t_rsem {
 #define TMIN_MPFID   1
 #define TMIN_CYCID   1
 
-
-
 #include "kernel_config.h"
 
 #define TNUM_TPRI              (TMAX_TPRI - TMIN_TPRI + 1)
@@ -200,7 +198,10 @@ typedef struct t_rsem {
 
 #ifdef TMAX_SEMID
   #define USE_SEMAPHORE
-  #define TNUM_SEMID           (TMAX_SEMID - TMIN_SEMID + 1)
+  #ifndef TRSV_SEMID
+   #define TRSV_SEMID          0 // Reserved for automatic assignment
+  #endif
+  #define TNUM_SEMID           (TMAX_SEMID - TMIN_SEMID + 1 + TRSV_SEMID)
   #ifndef TMAX_MAXSEM
     #error "TMAX_MAXSEM => Maximum value of the maximum definable semaphore resource count not defined"
   #endif // TMAX_MAXSEM

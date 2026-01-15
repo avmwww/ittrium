@@ -71,6 +71,7 @@ ER dly_tsk(RELTIM dlytim);
 /** Create Semaphore
  */
 ER cre_sem(ID semid, T_CSEM *pk_csem);
+ER_ID acre_sem(T_CSEM *pk_csem);
 
 /** Acquire Semaphore Resource
  */
@@ -87,6 +88,10 @@ ER pol_sem(ID semid);
 /** Release Semaphore Resource
  */
 ER sig_sem(ID semid);
+
+/** Release Semaphore Resource from interrupt context
+ */
+ER isig_sem(ID semid);
 
 /** Eventflags */
 

@@ -29,7 +29,7 @@ void semaphore_initialize(void);
 void mailbox_initialize(void);
 #endif //USE_MAILBOX
 
-void main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   T_CTSK pk_ctsk;
 

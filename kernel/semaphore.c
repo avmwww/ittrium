@@ -26,11 +26,11 @@ typedef struct semaphore_control_block {
    INT   maxsem;
 } SEMCB;
 
-static SEMCB	semcb_table[TNUM_SEMID];
+static SEMCB semcb_table[TNUM_SEMID];
 
 #define get_semcb_by_id(id)   (&(semcb_table[(id) - TMIN_SEMID]))
 
-QUEUE	free_semcb;
+QUEUE free_semcb;
 
 void semaphore_initialize()
 {
@@ -40,8 +40,7 @@ void semaphore_initialize()
 
    queue_initialize(&free_semcb);
 
-   for(semcb = semcb_table, i = 0; i < TNUM_SEMID; semcb++, i++)
-   {
+   for(semcb = semcb_table, i = 0; i < TNUM_SEMID; semcb++, i++) {
       semid = i;
       semcb->gcb.objid = semid;
       semcb->gcb.state = TTS_NOEXS;
@@ -49,17 +48,14 @@ void semaphore_initialize()
    }
 }
 //==============================================================================
-ER cre_sem(ID semid, T_CSEM *pk_csem)
+static ER _cre_sem(ID semid, T_CSEM *pk_csem)
 {
   SEMCB *semcb;
   
-  if (semid < TMIN_SEMID || semid > TMAX_SEMID)
-    return E_ID;
-
-  if ( (pk_csem->sematr &(TA_TFIFO|TA_TPRI))!= pk_csem->sematr )
+  if ((pk_csem->sematr &(TA_TFIFO|TA_TPRI))!= pk_csem->sematr )
     return E_RSATR;
 
-  if ((TMAX_MAXSEM < pk_csem->maxsem)||(TMAX_MAXSEM < pk_csem->isemcnt) )
+  if ((TMAX_MAXSEM < pk_csem->maxsem) || (TMAX_MAXSEM < pk_csem->isemcnt))
     return E_PAR;
   
   semcb = get_semcb_by_id(semid);
@@ -75,6 +71,33 @@ ER cre_sem(ID semid, T_CSEM *pk_csem)
   semcb->maxsem = pk_csem->maxsem;
   END_CRITICAL_SECTION;
   return E_OK;
+}
+
+ER cre_sem(ID semid, T_CSEM *pk_csem)
+{
+  if (semid < TMIN_SEMID || semid > (TMAX_SEMID + TRSV_SEMID))
+    return E_ID;
+
+  return _cre_sem(semid, pk_csem);
+}
+
+/*
+ * Create Semaphore (ID Number Automatic Assignment)
+ */
+ER_ID acre_sem(T_CSEM *pk_csem)
+{
+  ID i;
+  SEMCB *semcb;
+
+  if (TRSV_SEMID == 0)
+    return E_NOID;
+
+  for (i = TMAX_SEMID + 1; i < TMAX_SEMID + 1; i++) {
+    semcb = get_semcb_by_id(semid);
+    if (TTS_NOEXS == semcb->gcb.state)
+      return _cre_sem(i, pk_csem);
+  }
+  return E_NOID;
 }
 
 static ER __wai_sem(ID semid, TMO tmout)
@@ -121,7 +144,7 @@ ER pol_sem(ID semid)
 //==============================================================================
 // Release Semaphore Resource
 //==============================================================================
-ER sig_sem(ID semid)
+static ER _sig_sem(ID semid)
 {
   SEMCB   *semcb;
   ER ercd = E_OK;
@@ -143,9 +166,20 @@ ER sig_sem(ID semid)
       semcb->semcnt += 1;
   }
   END_CRITICAL_SECTION;
-  dispatch();
-  
   return ercd;
+}
+
+ER sig_sem(ID semid)
+{
+  ER ercd;
+  ercd = _sig_sem(semid);
+  dispatch();
+  return ercd;
+}
+
+ER isig_sem(ID semid)
+{
+  return _sig_sem(semid);
 }
 
 #endif // USE_SEMAPHORE
