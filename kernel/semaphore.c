@@ -92,7 +92,7 @@ ER_ID acre_sem(T_CSEM *pk_csem)
   if (TRSV_SEMID == 0)
     return E_NOID;
 
-  for (i = TMAX_SEMID + 1; i < TMAX_SEMID + 1; i++) {
+  for (i = TMAX_SEMID + 1; i < TMAX_SEMID + TRSV_SEMID + 1; i++) {
     semcb = get_semcb_by_id(semid);
     if (TTS_NOEXS == semcb->gcb.state)
       return _cre_sem(i, pk_csem);
