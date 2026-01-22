@@ -204,25 +204,23 @@ ER __rcv_mbx(ID mbxid, T_MSG **ppk_msg, TMO tmout)
   if (TTS_NOEXS == mbxcb->gcb.state) {
     // Non-existent object (specified mailbox is not registered)
     runtsk->ercd = E_NOEXS;
-    goto error_exit;
-  } 
-
-  if ( headmsg(mbxcb) != NULL ) {
-    // Get message from head of queue 
-    runtsk->ercd = E_OK;
-    *ppk_msg = headmsg(mbxcb);
-    headmsg(mbxcb) = nextmsg(*ppk_msg);
   } else {
-    //Ready for receive wait
-    runtsk->ercd = E_TMOUT;
-    if (tmout != TMO_POL) {
-      runtsk->winfo.mbx.ppk_msg = ppk_msg;
-      gcb_make_wait(&(mbxcb->gcb), tmout);
-      dispatch();
+    if ( headmsg(mbxcb) != NULL ) {
+      // Get message from head of queue 
+      runtsk->ercd = E_OK;
+      *ppk_msg = headmsg(mbxcb);
+      headmsg(mbxcb) = nextmsg(*ppk_msg);
+    } else {
+      //Ready for receive wait
+      runtsk->ercd = E_TMOUT;
+      if (tmout != TMO_POL) {
+        runtsk->winfo.mbx.ppk_msg = ppk_msg;
+        gcb_make_wait(&(mbxcb->gcb), tmout);
+        dispatch();
+      }
     }
   }
 
-error_exit:
   END_CRITICAL_SECTION;
 
   return runtsk->ercd;

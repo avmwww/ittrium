@@ -21,6 +21,7 @@
 #define TA_NULL         0
 #define TA_HLNG         0x00 // Start a processing unit through a high-level language interface
 #define TA_ASM          0x01 // Start a processing unit through an assembly language interface
+#define TA_FPU          0x10 // Floating point unit used by task
 #define TA_TFIFO        0x00 // Wait queue will be in FIFO order
 #define TA_TPRI         0x01 // Wait queue will be in task priority order
 #define TA_MFIFO        0x02
