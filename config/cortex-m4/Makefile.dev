@@ -1,0 +1,86 @@
+#
+# Cortex m-4 makefile
+#
+ASM = $(CROSS_COMPILE)as
+CC = $(CROSS_COMPILE)gcc
+RM = rm -rf
+LNK = $(CROSS_COMPILE)gcc
+AR = $(CROSS_COMPILE)ar
+SIZE = $(CROSS_COMPILE)size
+CP = cp -f
+MV = mv -p
+CAT = cat
+DD = dd
+MKDIR = mkdir -p
+#
+KERNEL_DEV = cortex-m4
+#
+OBJDIR = obj
+LISTDIR = list
+#
+CMSIS = ${CMSIS_ARM_PATH}
+CMSIS_DEV = ${CMSIS_DEV_PATH}
+HAL = ${HAL_PATH}
+
+ifeq ($(DEBUG), 1)
+	CFLAGS_OPT := -g -Og
+else
+	CFLAGS_OPT := -Os
+endif
+
+# TODO: make hard float
+FLAGS_COMMON := \
+	       -mcpu=cortex-m4 -mthumb \
+	       -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
+	       -I$(KERNEL_DIR)/include \
+	       -I$(KERNEL_DIR)/config/$(KERNEL_DEV) \
+
+# C flags
+CFLAGS += -I$(CMSIS)/CMSIS -I$(CMSIS)/CMSIS/Core/Include
+CFLAGS += -I$(CMSIS_DEV)/Include -I$(HAL)/Inc
+
+CFLAGS += $(FLAGS_COMMON) $(CFLAGS_OPT)
+CFLAGS += --specs=nano.specs
+CFLAGS += -fdata-sections -Wall -fstack-usage -MMD -MP
+# ASM flags
+FLAGS += $(FLAGS_COMMON)
+#
+LDFLAGS += --specs=nosys.specs
+LDFLAGS += -Wl,-Map="$(TARGET).map" -Wl,--gc-sections -static
+LDFLAGS += --specs=nano.specs
+LDFLAGS += $(FLAGS_COMMON)
+LDFLAGS += -Wl,--start-group -lc -lm -Wl,--end-group
+#
+OBJS = $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
+OBJS += $(patsubst %.s,%_.o,$(filter %.s,$(SRCS)))
+LIST = $(patsubst %.c,%.lst,$(filter %.c,$(SRCS)))
+# Find objects in
+vpath %.o $(OBJDIR)
+# Find listing in
+vpath %.lst $(LISTDIR)
+# cmsis dev sources
+vpath %.s $(CMSIS_DEV)/Source/Templates/gcc
+vpath %.c $(CMSIS_DEV)/Source/Templates
+vpath %.c $(HAL)/Src
+# All
+all: sub
+# Create obj directory
+$(OBJDIR):
+	$(MKDIR) $(OBJDIR)
+# Create list directory
+$(LISTDIR):
+	$(MKDIR) $(LISTDIR)
+# All objects
+# Asm
+%_.o: %.s
+	$(ASM) $(FLAGS) $< -o ../$(OBJDIR)/$@
+# C
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o ../$(OBJDIR)/$(notdir $@)
+
+# Clean
+clean:
+	$(RM) $(OBJDIR) $(LISTDIR) $(TARGET)
+
+# Naming our phony targets
+.PHONY: all clean sub
