@@ -5,6 +5,10 @@
 #include "../kernel/task.h"
 #include "../cpu_generic.c"
 
+#ifndef EXC_RETURN_THREAD_PSP
+# define EXC_RETURN_THREAD_PSP (0xFFFFFFFDUL) /* return to Thread mode, uses PSP after return */
+#endif
+
 /**
  *
  */
@@ -13,14 +17,7 @@ struct ivt_t {
   UW  prio;
 } int_vector_table[32];
 
-
-int interrupt_stack[INTERRUPT_STACK_SIZE/ sizeof(int)];
-int idle_stack[IDLE_TSK_STACK_SIZE/ sizeof(int)];
-
-static inline void interrupt_handler_service(void)
-{
-    NVIC_SetPendingIRQ(PendSV_IRQn);
-}
+int idle_stack[IDLE_TSK_STACK_SIZE / sizeof(int)];
 
 static void exit_task(void)
 {
@@ -108,6 +105,9 @@ void _int_init(void)
     int_vector_table[i].func = (FP)0;
     int_vector_table[i].prio = 0;
   }
+  NVIC_SetPriority(PendSV_IRQn, 0xFF);
+  NVIC_SetPriority(SVCall_IRQn, 0x00);
+  NVIC_SetPriority(SysTick_IRQn, 0x80);
 }
 
 /**
@@ -136,7 +136,7 @@ void terminate_hw_timer(void)
 /**
  *
  */
-__weak void _low_level_init(void)
+void __attribute__((weak)) _low_level_init(void)
 {
 }
 
@@ -185,10 +185,9 @@ void DebugMon_Handler(void)
 {
 }
 
-// Обработчик SysTick с поддержкой вложенных прерываний
+// SysTick irq haldler
 __attribute__((naked)) void SysTick_Handler(void)
 {
     interrupt_handler(TICKER_VEC_NO);
 }
-
 

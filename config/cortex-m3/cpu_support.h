@@ -62,9 +62,9 @@ typedef struct {
 #define INLINE static inline
 
 void _dispatch(void);
-#if 0
+#if 1
 # define dispatch()                 do {SCB->ICSR |= SCB_ICSR_PENDSVSET_Msk;} while (0)
-# define dispatch()                 NVIC_SetPendingIRQ(PendSV_IRQn);
+//# define dispatch()                 NVIC_SetPendingIRQ(PendSV_IRQn);
 #else
 # define dispatch()                 do {__enable_irq(); __asm volatile("SVC #0\n");} while (0)
 #endif
@@ -105,7 +105,7 @@ enum {
     TICKER_VEC_NO,
     VEC_NO_LAST,
 };
-#define INTERRUPT_STACK_SIZE    256
+
 /**
  *
  */
