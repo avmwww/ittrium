@@ -1,5 +1,5 @@
 #
-# Cortex-m4 makefile
+# Cortex-m3 makefile
 #
 ASM = $(CROSS_COMPILE)as
 CC = $(CROSS_COMPILE)gcc
@@ -13,7 +13,7 @@ CAT = cat
 DD = dd
 MKDIR = mkdir -p
 #
-KERNEL_DEV = cortex-m4
+KERNEL_DEV = cortex-m3
 #
 OBJDIR = obj
 LISTDIR = list
@@ -31,7 +31,7 @@ endif
 #
 FLAGS_COMMON := \
 	       -mcpu=cortex-m4 -mthumb \
-	       -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
+	       -mfloat-abi=soft \
 	       -I$(KERNEL_DIR)/include \
 	       -I$(KERNEL_DIR)/config/$(KERNEL_DEV) \
 
