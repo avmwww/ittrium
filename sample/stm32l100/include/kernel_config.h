@@ -40,6 +40,8 @@ extern short init_tsk_sys_stack[];
 #define INIT_TASK_STACK_SIZE   512
 #define INIT_TASK_STACK        init_tsk_stack
 #define INIT_TASK_SYS_STACK    init_tsk_sys_stack
+// IDLE task
+#define IDLE_TSK_STACK_SIZE     256
 //==============================================================================
 // Eventflags
 //==============================================================================

@@ -63,7 +63,7 @@ restore_context:
     // nPRIV (Bit 0):
     // Controls privilege level in Thread mode (0=privileged, 1=unprivileged).
     // SPSEL (Bit 1): Selects the stack pointer (0=MSP, 1=PSP).
-    ldr r2, #0x02
+    mov r2, #0x02
     msr control, r2
     isb
     // enable interrupts and return

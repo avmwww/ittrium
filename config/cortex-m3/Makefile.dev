@@ -30,7 +30,7 @@ endif
 
 #
 FLAGS_COMMON := \
-	       -mcpu=cortex-m4 -mthumb \
+	       -mcpu=cortex-m3 -mthumb \
 	       -mfloat-abi=soft \
 	       -I$(KERNEL_DIR)/include \
 	       -I$(KERNEL_DIR)/config/$(KERNEL_DEV) \

@@ -148,9 +148,5 @@ void _low_level_init(void)
     //__HAL_RCC_PWR_CLK_ENABLE();
     target_clock_init();
     target_gpio_init();
-
-    //NVIC_SetPriority(PendSV_IRQn, 0xFF);
-    //NVIC_SetPriority(SVCall_IRQn, 1);
-    //__set_BASEPRI(0);
 }
 

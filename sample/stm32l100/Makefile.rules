@@ -1,77 +1,15 @@
 ##################################################################
 CROSS_COMPILE=arm-none-eabi-
-ASM = $(CROSS_COMPILE)as
-CC = $(CROSS_COMPILE)gcc
-RM = rm -rf
-LNK = $(CROSS_COMPILE)gcc
-AR = $(CROSS_COMPILE)ar
-CP = cp -f
-MV = mv -p
-CAT = cat
-DD = dd
-MKDIR = mkdir -p
 #
 KERNEL_DIR ?= $(PWD)/../..
-KERNEL_DEV = cortex-m3
-#
-OBJDIR = obj
-LISTDIR = list
-#
-CMSIS = ${CMSIS_ARM_PATH}
-CMSIS_F1 = ${CMSIS_STM_PATH}
-HAL = ${STM_HAL_PATH}
+KERNEL_DEV := cortex-m3
+
 #
 # C flags
-CFLAGS += -I$(CMSIS)/CMSIS/Core/Include
 CFLAGS += -DSTM32L100xB -DUSE_FULL_LL_DRIVER
-CFLAGS += -I$(CMSIS_F1)/Include
-CFLAGS += -I$(HAL)/Inc
-
-#CFLAGS += -g -Og
-CFLAGS += -Os
-CFLAGS += -mcpu=cortex-m3 -mfloat-abi=soft -mthumb
 CFLAGS +=  -I. -I../include
-CFLAGS += -I$(KERNEL_DIR)/include -I$(KERNEL_DIR)/config/$(KERNEL_DEV)
 # ASM flags
-FLAGS += -g
-FLAGS += -mcpu=cortex-m3 -mfloat-abi=soft -mthumb
-FLAGS += -I$(KERNEL_DIR)/include -I$(KERNEL_DIR)/config/$(KERNEL_DEV)
 FLAGS += -I. -I../include
 #
-LDFLAGS += --specs=nano.specs
-LDFLAGS += -mcpu=cortex-m3 -mfloat-abi=soft -mthumb
-LDFLAGS += --specs=nosys.specs
-#
-OBJS = $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
-OBJS += $(patsubst %.s,%_.o,$(filter %.s,$(SRCS)))
-LIST = $(patsubst %.c,%.lst,$(filter %.c,$(SRCS)))
-# Find objects in
-vpath %.o ../$(OBJDIR)
-# Find listing in
-vpath %.lst $(LISTDIR)
-# cmsis f1 sources
-vpath %.s $(CMSIS_F1)/Source/Templates/gcc
-vpath %.c $(CMSIS_F1)/Source/Templates
-vpath %.c $(HAL)/Src
-# All
-all: sub
-# Create obj directory
-$(OBJDIR):
-	$(MKDIR) $(OBJDIR)
-# Create list directory
-$(LISTDIR):
-	$(MKDIR) $(LISTDIR)
-# All objects
-# Asm
-%_.o: %.s
-	$(ASM) $(FLAGS) $< -o ../$(OBJDIR)/$@
-# C
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o ../$(OBJDIR)/$@
+include $(KERNEL_DIR)/config/cortex-m3/Makefile.dev
 
-# Clean
-clean:
-	$(RM) $(OBJDIR) $(LISTDIR) $(TARGET)
-
-# Naming our phony targets
-.PHONY: all clean sub

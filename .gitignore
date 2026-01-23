@@ -3,6 +3,7 @@
 *.bin
 *.exe
 *.out
+*.map
 obj/
 build/
 cache/
