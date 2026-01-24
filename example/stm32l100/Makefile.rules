@@ -11,5 +11,5 @@ CFLAGS +=  -I. -I../include
 # ASM flags
 FLAGS += -I. -I../include
 #
-include $(KERNEL_DIR)/config/cortex-m3/Makefile.dev
+include $(KERNEL_DIR)/config/$(KERNEL_DEV)/Makefile.dev
 

@@ -1,0 +1,34 @@
+##################################################################
+CROSS_COMPILE=arm-none-eabi-
+#
+KERNEL_DIR ?= $(PWD)/../..
+KERNEL_DEV := cortex-m4
+#
+GD32_FW ?= $(PWD)/gd32_f3x0_firmware
+GD32_STD_PERIPH = $(GD32_FW)/GD32F3x0_standard_peripheral
+GD32_USB_LIB = $(GD32_FW)/GD32F3x0_usbfs_library
+GD32_CMSIS=$(GD32_FW)/CMSIS
+
+CMSIS_ARM_PATH = $(GD32_FW)
+CMSIS_DEV_PATH = $(GD32_FW)/CMSIS/GD/GD32F3x0
+
+# C flags
+CFLAGS += -I$(GD32_STD_PERIPH)/Include
+CFLAGS += -DGD32F350
+CFLAGS += -I. -I../include
+
+CFLAGS += -I$(GD32_USB_LIB)/driver/Include
+CFLAGS += -I$(GD32_USB_LIB)/device/core/Include
+CFLAGS += -I$(GD32_USB_LIB)/device/class/cdc/Include
+CFLAGS += -I$(GD32_USB_LIB)/ustd/common
+CFLAGS += -I$(GD32_USB_LIB)/ustd/class/cdc
+# ASM flags
+FLAGS += -I. -I../include
+#
+include $(KERNEL_DIR)/config/$(KERNEL_DEV)/Makefile.dev
+
+
+
+
+
+

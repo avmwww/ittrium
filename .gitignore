@@ -4,6 +4,7 @@
 *.exe
 *.out
 *.map
+*.elf
 obj/
 build/
 cache/
