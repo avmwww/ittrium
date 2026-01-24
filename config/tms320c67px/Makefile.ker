@@ -1,0 +1,69 @@
+##################################################################
+ASM = cl6x
+CC  = cl6x
+LNK = lnk6x
+AR  = ar6x
+#
+RM  = rm -f
+CP  = cp -f
+MV  = mv -f
+MKDIR := $(subst \,/, $(shell which mkdir.exe)) -p
+#
+KERNEL_DEV = tms320c67px
+#
+DEVREV=67p
+# C flags
+#
+CFLAGS += -i$(KERNEL_DIR)/include -i$(KERNEL_DIR)/config/$(KERNEL_DEV) \
+          -q -ss -es.lst -eo.o -fb$(LISTDIR) -fr$(OBJDIR) -mv$(DEVREV) \
+          -o3 -fs$(LISTDIR) -el.lst -ms1
+# ASM flags 
+# -ml0 .SMALL_MODEL
+# -ml1 .LARGE_MODEL
+# -ml2 .LARGE_MODEL_OPTION
+
+#FLAGS +=  -i$(KERNEL_DIR)/include -i$(KERNEL_DIR)/config/$(KERNEL_DEV) \
+#          -mv$(DEVREV) -q -ml0
+FLAGS +=  -i$(KERNEL_DIR)/include -i$(KERNEL_DIR)/config/$(KERNEL_DEV) \
+          -mv$(DEVREV) -q -ml0 -fr$(OBJDIR) -eo.o
+#
+OBJS = $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
+OBJS += $(patsubst %.asm,%_.o,$(filter %.asm,$(SRCS)))
+LIST = $(patsubst %.c,%.lst,$(filter %.c,$(SRCS)))
+# Source in kernel dir
+vpath %.c    $(KERNEL_DIR)/config/$(KERNEL_DEV) $(KERNEL_DIR)/kernel
+vpath %.asm  $(KERNEL_DIR)/config/$(KERNEL_DEV)
+vpath %.h    $(KERNEL_DIR)/config/$(KERNEL_DEV) $(KERNEL_DIR)/include $(KERNEL_DIR)/kernel
+# Find objects in
+vpath %.o $(OBJDIR)
+# Find listing in
+vpath %.lst $(LISTDIR)
+#
+# All
+all: sub
+# Create obj directory
+$(OBJDIR):
+	$(MKDIR) $(OBJDIR)
+# Create list directory
+$(LISTDIR):
+	$(MKDIR) $(LISTDIR)
+# All objects
+# Asm
+%_.o: %.asm
+	$(ASM) $(FLAGS) $<
+	$(MV) $(OBJDIR)/$(*F).o $(OBJDIR)/$@
+#	$(ASM) $(FLAGS) $< $(OBJDIR)/$@
+# C
+%.o: %.c
+	$(CC) $(CFLAGS) $<
+
+# Clean
+clean:
+	$(RM) $(OBJS)
+	$(RM) $(LIST)
+
+ittrium.o: ittrium.c ittrium.h cpu_support.h kernel_config.h \
+           cpu_support.c
+
+# Naming our phony targets
+.PHONY: all clean
