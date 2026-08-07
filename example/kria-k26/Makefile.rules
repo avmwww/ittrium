@@ -1,7 +1,7 @@
 ##################################################################
 CROSS_COMPILE ?= aarch64-none-elf-
 #
-# PWD stays at example/qemu-a53 when using make -C subdirs
+# PWD stays at example/kria-k26 when using make -C subdirs
 KERNEL_DIR ?= $(PWD)/../..
 KERNEL_DEV := cortex-a53
 

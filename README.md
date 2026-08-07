@@ -68,7 +68,7 @@ ittrium/
 ├── third_party/       # littlefs (and similar)
 ├── example/           # boards / demos
 │   ├── qemu-a53/      # QEMU virt — primary A53 bring-up
-│   ├── kria-rtx/      # ZynqMP / Kria (UART1 + GEM3)
+│   ├── kria-k26/      # Kria K26 SOM (UART1 + GEM3)
 │   ├── stm32l100/ gd32f350/ c55x/ …
 └── README.md
 ```
@@ -85,7 +85,7 @@ External (expected next to the tree for networked examples):
 
 | CPU | Directory | Example |
 |-----|-----------|---------|
-| Cortex-A53 (AArch64 EL1) | `config/cortex-a53` | `example/qemu-a53`, `example/kria-rtx` |
+| Cortex-A53 (AArch64 EL1) | `config/cortex-a53` | `example/qemu-a53`, `example/kria-k26` |
 | Cortex-M3 / M4 | `config/cortex-m3`, `cortex-m4` | `example/stm32l100`, `gd32f350` |
 | ARM7 / LPC288x | `config/arm7`, `lpc288x` | — |
 | M16C | `config/m16c62` | — |
@@ -101,11 +101,11 @@ A new board on an existing CPU is usually only `example/<board>/` (see [Porting]
 - GNU Make  
 - Cross compiler for the target CPU  
 
-For **A53** (Vitis baremetal toolchain recommended):
+For **A53**, put `aarch64-none-elf-gcc` on your `PATH` (or set `CROSS_COMPILE`):
 
 ```bash
-export PATH=/opt/xilinx/Vitis/2023.2/gnu/aarch64/lin/aarch64-none/bin:$PATH
-# or: export CROSS_COMPILE=aarch64-none-elf-
+# default in Makefiles: CROSS_COMPILE=aarch64-none-elf-
+export CROSS_COMPILE=aarch64-none-elf-   # optional override
 ```
 
 For **qemu-a53** also:
@@ -157,12 +157,12 @@ Board details: [`example/qemu-a53/README.md`](example/qemu-a53/README.md).
 
 ---
 
-## Kria / ZynqMP board
+## Kria K26 SOM
 
 ```bash
-cd example/kria-rtx
+cd example/kria-k26
 make
-# → ittrium-kria-rtx.elf  (load address 0x00100000)
+# → ittrium-kria-k26.elf  (load address 0x00100000)
 ```
 
 - EL1, no MMU (same model as QEMU)  
@@ -170,8 +170,9 @@ make
 - Cadence **GEM3** → `netdev` + lwIP  
 - GIC Group1 (EL1 NS)  
 - Assumes FSBL / `psu_init` already set clocks, MIO, and PHY reset  
+- PHY / Ethernet wiring depends on the **carrier**; defaults suit a typical K26 RGMII setup  
 
-See [`example/kria-rtx/README.md`](example/kria-rtx/README.md).
+See [`example/kria-k26/README.md`](example/kria-k26/README.md).
 
 ---
 
@@ -183,7 +184,7 @@ Two levels: **CPU** (rare) and **board** (common). Below is the usual path — a
 
 ```bash
 cp -a example/qemu-a53 example/myboard
-# or example/kria-rtx if closer to ZynqMP
+# or example/kria-k26 if closer to ZynqMP / Kria
 ```
 
 ### 2. `include/target.h` — hardware only
@@ -345,7 +346,8 @@ Shell: `ps`, `irq`, `load`.
 ## Example docs
 
 - [`example/qemu-a53/README.md`](example/qemu-a53/README.md) — QEMU virt, virtio-net, shell  
-- [`example/kria-rtx/README.md`](example/kria-rtx/README.md) — Kria / GEM3 / UART1  
+- [`example/kria-k26/README.md`](example/kria-k26/README.md) — Kria K26 SOM / GEM3 / UART1  
+
 - [`example/stm32l100/README.md`](example/stm32l100/README.md), [`example/gd32f350/README.md`](example/gd32f350/README.md) — Cortex-M  
 
 ---

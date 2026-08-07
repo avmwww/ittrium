@@ -5,14 +5,14 @@ Reference board for ittrium on **QEMU `virt`**: kernel + platform services (VFS,
 ## Build & run
 
 ```bash
-export PATH=/opt/xilinx/Vitis/2023.2/gnu/aarch64/lin/aarch64-none/bin:$PATH
 cd example/qemu-a53
 make
 make run
 # or from repo root: ./qrun.sh
 ```
 
-Requires an lwIP tree at `ittrium/../lwip` when `CFG_USE_LWIP=1`.
+Requires `aarch64-none-elf-gcc` on `PATH` (or `CROSS_COMPILE=…`).  
+Also requires an lwIP tree at `ittrium/../lwip` when `CFG_USE_LWIP=1`.
 
 `make run` starts:
 
@@ -61,4 +61,4 @@ QEMU **user-net (SLIRP)** does not forward ICMP host→guest, so `ping 10.0.2.15
 - littlefs uses a RAM block device (`services/vfs/lfs_port.c`); format on first mount
 - Driver glue: `services/drv` (`console`, `netdev`); this board owns PL011 + virtio-net
 - Enable/disable services with `CFG_USE_*` in `include/kernel_config.h` (`0` = omit)
-- Related hardware port: [`../kria-rtx/`](../kria-rtx/) (UART1 + GEM3, same EL1 no-MMU model)
+- Related hardware port: [`../kria-k26/`](../kria-k26/) (Kria K26 SOM, UART1 + GEM3, same EL1 no-MMU model)
