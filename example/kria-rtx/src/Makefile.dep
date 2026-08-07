@@ -1,4 +1,0 @@
-# Generated loosely; full rebuild is fine for qemu-a53
-test.o: test.c
-uart.o: uart.c
-syscalls.o: syscalls.c
