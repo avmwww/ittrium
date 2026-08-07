@@ -133,7 +133,11 @@ void irq_handle(uint32_t iar)
 		vec = UART_VEC_NO;
 #ifdef VIRTIO_NET_IRQ
 	else if (irq == VIRTIO_NET_IRQ)
-		vec = VIRTIO_NET_VEC_NO;
+		vec = NETDEV_VEC_NO;
+#endif
+#ifdef GEM_IRQ
+	else if (irq == GEM_IRQ)
+		vec = NETDEV_VEC_NO;
 #endif
 	else if (irq < 32u && int_vector_table[irq].func)
 		vec = (INHNO)irq;
@@ -165,6 +169,10 @@ void irq_handle(uint32_t iar)
 #define GICC_IAR            (*(volatile uint32_t *)(GICC_BASE + 0x00C))
 #define GICC_EOIR           (*(volatile uint32_t *)(GICC_BASE + 0x010))
 
+#ifndef GIC_USE_GROUP1
+#define GIC_USE_GROUP1 0
+#endif
+
 void gic_init(void)
 {
 	GICD_CTLR = 0;
@@ -172,9 +180,15 @@ void gic_init(void)
 
 	GICC_PMR = 0xff;
 	GICC_BPR = 0;
-	/* Group 0 only — matches QEMU virt EL1 bring-up */
+#if GIC_USE_GROUP1
+	/* ZynqMP EL1 NS: Group1 SPIs (Group0 is secure/EL3) */
+	GICC_CTLR = 0x2;
+	GICD_CTLR = 0x2;
+#else
+	/* QEMU virt EL1 bring-up uses Group0 */
 	GICC_CTLR = 1;
 	GICD_CTLR = 1;
+#endif
 }
 
 void gic_enable_irq(unsigned int irq, UB prio)
@@ -183,8 +197,11 @@ void gic_enable_irq(unsigned int irq, UB prio)
 	unsigned int bit = irq % 32u;
 
 	GICD_IPRIORITYR(irq) = prio;
-	/* Group 0 */
+#if GIC_USE_GROUP1
+	GICD_IGROUPR(reg) |= (1u << bit);
+#else
 	GICD_IGROUPR(reg) &= ~(1u << bit);
+#endif
 	if (irq >= 32u)
 		GICD_ITARGETSR(irq) = 0x01;
 	GICD_ISENABLER(reg) = (1u << bit);
@@ -205,7 +222,12 @@ const char *irq_vec_name(unsigned vec)
 	switch (vec) {
 	case TICKER_VEC_NO: return "timer";
 	case UART_VEC_NO: return "uart";
-	case VIRTIO_NET_VEC_NO: return "virtio-net";
+	case NETDEV_VEC_NO:
+#ifdef GEM_IRQ
+		return "gem";
+#else
+		return "virtio-net";
+#endif
 	default: return "?";
 	}
 }

@@ -66,6 +66,9 @@ endif
 
 ifeq ($(CFG_USE_SHELL),1)
 SRCS += shell.c lineedit.c
+ifeq ($(CFG_USE_LWIP),1)
+SRCS += shell_net.c
+endif
 endif
 
 ifeq ($(CFG_USE_ELF),1)

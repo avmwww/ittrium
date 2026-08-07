@@ -26,7 +26,7 @@
 #define LWIP_UDP                    1
 #define LWIP_TCP                    1
 #define LWIP_ICMP                   1
-#define LWIP_RAW                    0
+#define LWIP_RAW                    1
 #define LWIP_ARP                    1
 #define LWIP_ETHERNET               1
 
@@ -51,6 +51,7 @@
 #define MEM_SIZE                    (32 * 1024)
 
 #define MEMP_NUM_PBUF               16
+#define MEMP_NUM_RAW_PCB            4
 #define MEMP_NUM_UDP_PCB            4
 #define MEMP_NUM_TCP_PCB            8
 #define MEMP_NUM_TCP_PCB_LISTEN     2

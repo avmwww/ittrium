@@ -21,12 +21,17 @@ make run
 ```
 help
 ps
-ticks
+irq
+load
+ifconfig
+arp
+ping 10.0.2.2
 ls /
 cat /readme.txt
 mount
 cat /proc/tasks
-cat /sys/cpu/el
+cat /proc/interrupts
+cat /sys/cpu/load
 run /data/app.elf   # ELF/ITRM loader
 ```
 
@@ -37,4 +42,4 @@ run /data/app.elf   # ELF/ITRM loader
 - Driver glue: `services/drv` (`console`, `netdev`); board UART/virtio register ports
 - Services via `CFG_USE_*` in `include/kernel_config.h` (0 = omit)
 - `make run` uses modern virtio-mmio (`force-legacy=false`) on `virtio-mmio-bus.0` + user-net hostfwd
-- Next: kria_rtx (GEM via netdev)
+- Kria port: [`../kria-rtx/`](../kria-rtx/) (UART1 + GEM3, EL1 no-MMU)

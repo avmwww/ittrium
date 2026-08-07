@@ -41,7 +41,7 @@ int shell_getc(void)
   return g_getc();
 }
 
-static void shell_printf(const char *fmt, ...)
+void shell_printf(const char *fmt, ...)
 {
   /* Minimal formatter: supports %s %u %d %% only (no libc snprintf — nano can hang). */
   va_list ap;
@@ -299,6 +299,11 @@ void shell_init_builtins(void)
   shell_register("cat",   "print file", cmd_cat);
   shell_register("mount", "list mounts", cmd_mount);
   shell_register("run",   "load and run ELF/ITRM", cmd_run);
+  shell_net_register();
+}
+
+__attribute__((weak)) void shell_net_register(void)
+{
 }
 
 static int split_args(char *line, char **argv, int max)

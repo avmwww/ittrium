@@ -17,9 +17,11 @@ void shell_set_io(shell_putc_fn putc_fn, shell_getc_fn getc_fn);
 void shell_putc(char c);
 void shell_puts(const char *s);
 int shell_getc(void);
+void shell_printf(const char *fmt, ...);
 
 int shell_register(const char *name, const char *help, shell_cmd_fn fn);
 void shell_init_builtins(void);
+void shell_net_register(void); /* weak stub if no lwIP */
 void shell_task(void *exinf);
 
 /* line editor (linenoise-like) */

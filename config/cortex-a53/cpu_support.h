@@ -137,9 +137,11 @@ enum {
 	DISPATCH_VEC_NO = 0,
 	TICKER_VEC_NO,
 	UART_VEC_NO,
-	VIRTIO_NET_VEC_NO,
+	NETDEV_VEC_NO,
 	VEC_NO_LAST,
 };
+/* qemu virtio-net keeps the old name */
+#define VIRTIO_NET_VEC_NO NETDEV_VEC_NO
 
 void vectors_start(void);
 
