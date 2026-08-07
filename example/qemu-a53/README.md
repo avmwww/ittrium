@@ -12,7 +12,7 @@ make run
 ## What boots
 
 - ittrium kernel (tasks / ticks)
-- VFS: romfs `/`, ramfs `/data`, procfs `/proc`, sysfs `/sys`
+- VFS: romfs `/`, littlefs `/data`, procfs `/proc`, sysfs `/sys`
 - lwIP (`../lwip`) with `NO_SYS=0` sys_arch, loopback, TCP echo `:7`
 - shell (cmd-table + line editor) on UART (IRQ + eventflag + soft RX/TX FIFO)
 
@@ -33,5 +33,6 @@ run /data/app.elf   # ELF/ITRM loader
 ## Notes
 
 - lwIP tree expected at `ittrium/../lwip`
-- littlefs port is in `services/vfs/lfs_port.c` but currently unused (hang in `lfs_mount`); `/data` is ramfs for now
-- Next: virtio-net, littlefs fix, kria_rtx bring-up
+- littlefs: RAM block device (`services/vfs/lfs_port.c`); format-on-first-mount
+- Services are selected in `include/kernel_config.h` via `CFG_USE_*`
+  (0 = not compiled). This example enables VFS/LFS/shell/lwIP/… by default.

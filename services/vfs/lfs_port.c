@@ -18,6 +18,8 @@ static int bd_read(const struct lfs_config *c, lfs_block_t block,
                    lfs_off_t off, void *buffer, lfs_size_t size)
 {
   (void)c;
+  if (block >= LFS_PORT_BLOCK_COUNT)
+    return LFS_ERR_IO;
   memcpy(buffer, bd_mem + block * LFS_PORT_BLOCK_SIZE + off, size);
   return 0;
 }
@@ -26,6 +28,8 @@ static int bd_prog(const struct lfs_config *c, lfs_block_t block,
                    lfs_off_t off, const void *buffer, lfs_size_t size)
 {
   (void)c;
+  if (block >= LFS_PORT_BLOCK_COUNT)
+    return LFS_ERR_IO;
   memcpy(bd_mem + block * LFS_PORT_BLOCK_SIZE + off, buffer, size);
   return 0;
 }
@@ -33,6 +37,8 @@ static int bd_prog(const struct lfs_config *c, lfs_block_t block,
 static int bd_erase(const struct lfs_config *c, lfs_block_t block)
 {
   (void)c;
+  if (block >= LFS_PORT_BLOCK_COUNT)
+    return LFS_ERR_IO;
   memset(bd_mem + block * LFS_PORT_BLOCK_SIZE, 0xff, LFS_PORT_BLOCK_SIZE);
   return 0;
 }

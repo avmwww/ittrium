@@ -208,6 +208,12 @@ irq_return:
 	eret
 
 sync_invalid:
+	/* Print ESR/FAR via polled UART then halt */
+	mrs	x0, esr_el1
+	mrs	x1, far_el1
+	mrs	x2, elr_el1
+	bl	sync_abort_dump
+1:	b	1b
 fiq_invalid:
 serror_invalid:
 	b	.

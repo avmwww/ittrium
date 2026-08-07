@@ -5,7 +5,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/* Optional fixed window for ET_EXEC absolute p_vaddr loads */
 #ifndef ELF_LOAD_BASE
 #define ELF_LOAD_BASE  0x40200000u
 #endif

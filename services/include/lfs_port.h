@@ -4,7 +4,7 @@
 #include "vfs.h"
 
 #define LFS_PORT_BLOCK_SIZE  256
-#define LFS_PORT_BLOCK_COUNT 256  /* 64 KiB */
+#define LFS_PORT_BLOCK_COUNT 256  /* 64 KiB RAM BD */
 
 int lfs_port_mount(const char *mount_path);
 int lfs_port_umount(void);

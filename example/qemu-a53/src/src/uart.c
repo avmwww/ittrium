@@ -1,5 +1,5 @@
 /**
- * PL011 UART: soft RX/TX FIFO + eventflag (iset_flg / twai_flg)
+ * PL011 UART: IRQ + eventflag + soft RX/TX FIFO
  */
 #include "ittrium.h"
 #include "target.h"
@@ -28,8 +28,8 @@
 
 #define UART_FIFO_SIZE 128
 
-#define UART_FLG_RX   (1u << 0) /* soft RX not empty */
-#define UART_FLG_TX   (1u << 1) /* soft TX has free space */
+#define UART_FLG_RX   (1u << 0)
+#define UART_FLG_TX   (1u << 1)
 
 static uint8_t rx_fifo[UART_FIFO_SIZE];
 static uint8_t tx_fifo[UART_FIFO_SIZE];
@@ -76,7 +76,7 @@ static int tx_pop(uint8_t *b)
   return 1;
 }
 
-/* Drain soft TX into PL011; enable TX IRQ only if more remains */
+/* Soft TX → PL011; TX IRQ only while soft TX non-empty */
 static void uart_tx_kick(void)
 {
   uint8_t b;
@@ -122,10 +122,9 @@ void uart_init(void)
   tx_head = tx_tail = tx_count = 0;
 
   pk_cflg.flgatr = TA_TFIFO | TA_CLR | TA_WMUL;
-  pk_cflg.iflgptn = UART_FLG_TX; /* soft TX empty → space available */
+  pk_cflg.iflgptn = UART_FLG_TX;
   cre_flg(UART_FLG_ID, &pk_cflg);
 
-  /* 8N1, FIFOs on; QEMU ignores baud */
   UART_CR = 0;
   UART_LCR_H = UART_LCR_H_FEN | UART_LCR_H_WLEN_8;
   UART_ICR = 0x7ff;
@@ -191,4 +190,37 @@ int __io_putchar(int ch)
 {
   uart_putc((char)ch);
   return ch;
+}
+
+/* Polled TX for sync_abort_dump (IRQs may be off) */
+static void uart_putc_raw(char c)
+{
+  while (UART_FR & UART_FR_TXFF)
+    ;
+  UART_DR = (uint32_t)(uint8_t)c;
+}
+
+static void uart_puts_raw(const char *s)
+{
+  while (*s)
+    uart_putc_raw(*s++);
+}
+
+static void uart_put_hex64(uint64_t v)
+{
+  static const char hex[] = "0123456789abcdef";
+  int i;
+  for (i = 60; i >= 0; i -= 4)
+    uart_putc_raw(hex[(v >> i) & 0xfu]);
+}
+
+void sync_abort_dump(uint64_t esr, uint64_t far, uint64_t elr)
+{
+  uart_puts_raw("\r\nSYNC ABORT esr=");
+  uart_put_hex64(esr);
+  uart_puts_raw(" far=");
+  uart_put_hex64(far);
+  uart_puts_raw(" elr=");
+  uart_put_hex64(elr);
+  uart_puts_raw("\r\n");
 }

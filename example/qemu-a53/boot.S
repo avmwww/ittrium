@@ -39,6 +39,11 @@ drop_el2:
 	eret
 
 el1_entry:
+	/* FP/ASIMD — gcc -Os may use Neon for copies */
+	mov	x0, #(3 << 20)		/* CPACR_EL1.FPEN */
+	msr	cpacr_el1, x0
+	isb
+
 	/* MMU/caches off */
 	mrs	x0, sctlr_el1
 	bic	x0, x0, #(1 << 0)	/* M */

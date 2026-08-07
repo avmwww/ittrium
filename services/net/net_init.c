@@ -1,6 +1,3 @@
-/**
- * lwIP bring-up for ittrium: tcpip core, loopback, optional TCP echo :7
- */
 #include "net_init.h"
 
 #include "lwip/opt.h"
