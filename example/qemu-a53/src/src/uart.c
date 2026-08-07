@@ -3,6 +3,7 @@
  */
 #include "ittrium.h"
 #include "target.h"
+#include "drv/console.h"
 
 #define UART_DR       (*(volatile uint32_t *)(UART_BASE + 0x00))
 #define UART_FR       (*(volatile uint32_t *)(UART_BASE + 0x18))
@@ -114,6 +115,11 @@ static void uart_irq(void)
     iset_flg(UART_FLG_ID, set);
 }
 
+static const struct console_ops g_console_ops = {
+  .putc = uart_putc,
+  .getc = uart_getc,
+};
+
 void uart_init(void)
 {
   T_CFLG pk_cflg;
@@ -134,6 +140,7 @@ void uart_init(void)
   install_handler(uart_irq, UART_VEC_NO, UART_IRQ_PRIO);
   gic_enable_irq(UART_IRQ, UART_IRQ_PRIO);
   uart_ready = 1;
+  console_register(&g_console_ops);
 }
 
 void uart_putc(char c)

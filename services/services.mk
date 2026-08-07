@@ -23,12 +23,15 @@ CFG_USE_LWIP   := $(if $(call cfg_val,CFG_USE_LWIP),$(call cfg_val,CFG_USE_LWIP)
 CFLAGS += -I$(SERVICES)/include
 CFLAGS += -I$(KERNEL_DIR)/kernel
 
+vpath %.c $(SERVICES)/drv
 vpath %.c $(SERVICES)/vfs
 vpath %.c $(SERVICES)/shell
 vpath %.c $(SERVICES)/proc
 vpath %.c $(SERVICES)/elf
 vpath %.c $(SERVICES)/net
 vpath %.c $(SERVICES)/net/arch
+
+SRCS += console.c netdev.c
 
 ifeq ($(CFG_USE_VFS),1)
 SRCS += vfs.c
@@ -77,6 +80,7 @@ vpath %.c $(LWIPDIR)/netif
 SRCS += \
 	sys_arch.c \
 	net_init.c \
+	netif_netdev.c \
 	init.c \
 	def.c \
 	dns.c \
@@ -98,6 +102,7 @@ SRCS += \
 	ip4_frag.c \
 	ip4.c \
 	ip4_addr.c \
+	etharp.c \
 	api_lib.c \
 	api_msg.c \
 	err.c \
@@ -105,5 +110,6 @@ SRCS += \
 	netbuf.c \
 	netdb.c \
 	netifapi.c \
-	tcpip.c
+	tcpip.c \
+	ethernet.c
 endif

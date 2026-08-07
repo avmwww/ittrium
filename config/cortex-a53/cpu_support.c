@@ -129,6 +129,10 @@ void irq_handle(uint32_t iar)
 		vec = TICKER_VEC_NO;
 	else if (irq == UART_IRQ)
 		vec = UART_VEC_NO;
+#ifdef VIRTIO_NET_IRQ
+	else if (irq == VIRTIO_NET_IRQ)
+		vec = VIRTIO_NET_VEC_NO;
+#endif
 	else if (irq < 32u && int_vector_table[irq].func)
 		vec = (INHNO)irq;
 	else

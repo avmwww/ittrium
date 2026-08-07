@@ -18,7 +18,7 @@
 #define CFG_USE_SYSFS    1
 #define CFG_USE_SHELL    1
 #define CFG_USE_ELF      1
-#define CFG_USE_LWIP     0
+#define CFG_USE_LWIP     1
 
 //==============================================================================
 // Tasks
@@ -34,6 +34,7 @@ enum {
   LWIP_TASK_2_ID,
   LWIP_TASK_3_ID,
   LWIP_TASK_4_ID,
+  VIRTIO_NET_TASK_ID,
 #endif
 #if CFG_USE_ELF
   ELF_TASK_ID,
@@ -60,6 +61,10 @@ enum {
 #if CFG_USE_ELF
 #define ELF_TSK_STACK_SIZE     8192
 #endif
+#if CFG_USE_LWIP
+#define VIRTIO_NET_TSK_STACK_SIZE  8192
+#define VIRTIO_NET_TASK_PRIO       (HIGH_PRIO + 3)
+#endif
 
 void init_tsk(void *exinf);
 extern uint64_t init_tsk_stack[];
@@ -75,6 +80,9 @@ extern uint64_t init_tsk_stack[];
 #define TBIT_FLGPTN              16
 enum {
   UART_FLG_ID = TMIN_FLGID,
+#if CFG_USE_LWIP
+  VIRTIO_FLG_ID,
+#endif
   MAX_FLAG_ID
 };
 #define TMAX_FLGID    (MAX_FLAG_ID - 1)

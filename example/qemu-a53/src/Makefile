@@ -9,6 +9,7 @@ vpath %.c src
 SRCS = \
 	test.c \
 	uart.c \
+	virtio_net.c \
 	syscalls.c \
 	string.c \
 

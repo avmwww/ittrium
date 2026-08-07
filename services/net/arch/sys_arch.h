@@ -55,7 +55,7 @@ typedef lock_state_t sys_prot_t;
 #endif
 
 #ifndef LWIP_THREAD_STACK_SIZE
-#define LWIP_THREAD_STACK_SIZE  2048
+#define LWIP_THREAD_STACK_SIZE  4096
 #endif
 
 /*

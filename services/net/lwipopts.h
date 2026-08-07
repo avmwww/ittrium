@@ -27,8 +27,8 @@
 #define LWIP_TCP                    1
 #define LWIP_ICMP                   1
 #define LWIP_RAW                    0
-#define LWIP_ARP                    0
-#define LWIP_ETHERNET               0
+#define LWIP_ARP                    1
+#define LWIP_ETHERNET               1
 
 /* Loopback */
 #define LWIP_NETIF_LOOPBACK         1
@@ -66,11 +66,11 @@
 #define MEMP_NUM_TCPIP_MSG_INPKT    8
 
 #define PBUF_POOL_SIZE              16
-#define PBUF_POOL_BUFSIZE           256
+#define PBUF_POOL_BUFSIZE           1536
 
 /* TCP tunables */
-#define TCP_MSS                     256
-#define TCP_SND_BUF                 (2 * TCP_MSS)
+#define TCP_MSS                     1460
+#define TCP_SND_BUF                 (4 * TCP_MSS)
 #define TCP_WND                     (4 * TCP_MSS)
 #define TCP_SND_QUEUELEN            ((4 * TCP_SND_BUF) / TCP_MSS)
 #define TCP_LISTEN_BACKLOG          1
@@ -82,9 +82,9 @@
 #define DEFAULT_ACCEPTMBOX_SIZE     2
 #define DEFAULT_RAW_RECVMBOX_SIZE   2
 
-#define TCPIP_THREAD_STACKSIZE      2048
+#define TCPIP_THREAD_STACKSIZE      4096
 #define TCPIP_THREAD_PRIO           3
-#define DEFAULT_THREAD_STACKSIZE    1536
+#define DEFAULT_THREAD_STACKSIZE    4096
 #define DEFAULT_THREAD_PRIO         4
 
 /* Stats / debug off by default */

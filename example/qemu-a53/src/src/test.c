@@ -3,6 +3,7 @@
  */
 #include "ittrium.h"
 #include "target.h"
+#include "drv/console.h"
 
 #if CFG_USE_SHELL
 #include "shell.h"
@@ -27,6 +28,8 @@
 #endif
 #if CFG_USE_LWIP
 #include "net_init.h"
+#include "netif_netdev.h"
+#include "lwip/ip4_addr.h"
 #endif
 
 uint64_t init_tsk_stack[INIT_TASK_STACK_SIZE / sizeof(uint64_t)];
@@ -39,7 +42,7 @@ static void start_shell(void)
 {
   T_CTSK pk;
 
-  shell_set_io(uart_putc, uart_getc);
+  shell_set_io(console_putc, console_getc);
 
   pk.tskatr = TA_HLNG;
   pk.exinf = 0;
@@ -61,28 +64,28 @@ static void lfs_smoke(void)
 
   fd = vfs_open("/data/smoke.txt", VFS_O_WRONLY | VFS_O_CREAT | VFS_O_TRUNC);
   if (fd < 0) {
-    uart_puts("lfs: smoke open-w failed\n");
+    console_puts("lfs: smoke open-w failed\n");
     return;
   }
   n = vfs_write(fd, "ok\n", 3);
   vfs_close(fd);
   if (n != 3) {
-    uart_puts("lfs: smoke write failed\n");
+    console_puts("lfs: smoke write failed\n");
     return;
   }
 
   fd = vfs_open("/data/smoke.txt", VFS_O_RDONLY);
   if (fd < 0) {
-    uart_puts("lfs: smoke open-r failed\n");
+    console_puts("lfs: smoke open-r failed\n");
     return;
   }
   n = vfs_read(fd, buf, sizeof(buf) - 1);
   vfs_close(fd);
   if (n != 3 || buf[0] != 'o' || buf[1] != 'k') {
-    uart_puts("lfs: smoke read failed\n");
+    console_puts("lfs: smoke read failed\n");
     return;
   }
-  uart_puts("lfs: smoke ok\n");
+  console_puts("lfs: smoke ok\n");
 }
 #endif
 
@@ -91,44 +94,61 @@ void init_tsk(void *exinf)
   (void)exinf;
 
   uart_init();
-  uart_puts("ittrium cortex-a53 qemu\n");
+  console_puts("ittrium cortex-a53 qemu\n");
 
 #if CFG_USE_VFS
-  uart_puts("vfs...\n");
+  console_puts("vfs...\n");
   vfs_init();
 #endif
 #if CFG_USE_ROMFS
-  uart_puts("romfs...\n");
+  console_puts("romfs...\n");
   romfs_mount("/", NULL, 0);
 #endif
 #if CFG_USE_PROCFS
-  uart_puts("proc...\n");
+  console_puts("proc...\n");
   procfs_mount("/proc");
 #endif
 #if CFG_USE_SYSFS
-  uart_puts("sys...\n");
+  console_puts("sys...\n");
   sysfs_mount("/sys");
 #endif
 #if CFG_USE_LFS
-  uart_puts("data...\n");
+  console_puts("data...\n");
   if (lfs_port_mount("/data") != 0)
-    uart_puts("lfs: mount failed\n");
+    console_puts("lfs: mount failed\n");
   else {
-    uart_puts("lfs: /data ready\n");
+    console_puts("lfs: /data ready\n");
     lfs_smoke();
   }
 #elif CFG_USE_RAMFS
-  uart_puts("data...\n");
+  console_puts("data...\n");
   if (ramfs_mount("/data") != 0)
-    uart_puts("ramfs: mount failed\n");
+    console_puts("ramfs: mount failed\n");
   else
-    uart_puts("ramfs: /data ready\n");
+    console_puts("ramfs: /data ready\n");
 #endif
 
 #if CFG_USE_LWIP
-  uart_puts("lwip: init...\n");
-  net_init();
-  uart_puts("lwip: loopback + echo :7\n");
+  console_puts("virtio-net...\n");
+  if (virtio_net_init() != 0)
+    console_puts("virtio-net: init failed\n");
+  else {
+    static struct netif eth;
+    ip4_addr_t ip, mask, gw;
+
+    console_puts("lwip: init...\n");
+    net_init();
+    /* QEMU user-net: guest 10.0.2.15, gateway 10.0.2.2 */
+    IP4_ADDR(&ip, 10, 0, 2, 15);
+    IP4_ADDR(&mask, 255, 255, 255, 0);
+    IP4_ADDR(&gw, 10, 0, 2, 2);
+    if (netif_netdev_add(&eth, virtio_net_dev(), &ip, &mask, &gw) != ERR_OK)
+      console_puts("lwip: eth add failed\n");
+    else {
+      netif_set_default(&eth);
+      console_puts("lwip: eth 10.0.2.15 echo :7 (host :10007)\n");
+    }
+  }
 #endif
 
 #if CFG_USE_SHELL

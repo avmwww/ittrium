@@ -13,7 +13,7 @@ make run
 
 - ittrium kernel (tasks / ticks)
 - VFS: romfs `/`, littlefs `/data`, procfs `/proc`, sysfs `/sys`
-- lwIP (`../lwip`) with `NO_SYS=0` sys_arch, loopback, TCP echo `:7`
+- lwIP (`../lwip`) with `NO_SYS=0` sys_arch, virtio-net eth `10.0.2.15`, TCP echo `:7` (host `:10007`)
 - shell (cmd-table + line editor) on UART (IRQ + eventflag + soft RX/TX FIFO)
 
 ## Shell examples
@@ -34,5 +34,7 @@ run /data/app.elf   # ELF/ITRM loader
 
 - lwIP tree expected at `ittrium/../lwip`
 - littlefs: RAM block device (`services/vfs/lfs_port.c`); format-on-first-mount
-- Services are selected in `include/kernel_config.h` via `CFG_USE_*`
-  (0 = not compiled). This example enables VFS/LFS/shell/lwIP/… by default.
+- Driver glue: `services/drv` (`console`, `netdev`); board UART/virtio register ports
+- Services via `CFG_USE_*` in `include/kernel_config.h` (0 = omit)
+- `make run` uses modern virtio-mmio (`force-legacy=false`) on `virtio-mmio-bus.0` + user-net hostfwd
+- Next: kria_rtx (GEM via netdev)

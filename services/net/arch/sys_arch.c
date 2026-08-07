@@ -5,7 +5,7 @@
  * Threads:    pool of LWIP_THREAD_COUNT tasks with static stacks
  * Mailboxes:  ring buffer of void* + wait semaphores (not ittrium mbx)
  * Time:       get_tim() / 1 ms system ticks
- * Protect:    SYS_ARCH_PROTECT macros in sys_arch.h (begin_critical_section)
+ * Protect:    SYS_ARCH_PROTECT macros in sys_arch.h (BEGIN_CRITICAL_SECTION)
  */
 #include "lwip/opt.h"
 #include "lwip/sys.h"
@@ -396,15 +396,15 @@ void sys_mbox_free(sys_mbox_t *mbox)
 
 static err_t mbox_try_enqueue(struct sys_mbox *m, void *msg, int from_isr)
 {
-  lock_state_t lev;
+  lock_state_t ls;
 
-  begin_critical_section(lev);
+  begin_critical_section(ls);
   if (m->used >= m->size) {
-    end_critical_section(lev);
+    end_critical_section(ls);
     return ERR_MEM;
   }
   mbox_enqueue_unlocked(m, msg);
-  end_critical_section(lev);
+  end_critical_section(ls);
 
   if (from_isr) {
     (void)isig_sem(m->sem_empty->id);
@@ -450,35 +450,52 @@ u32_t sys_arch_mbox_fetch(sys_mbox_t *mbox, void **msg, u32_t timeout)
   u32_t start;
   ER er;
   void *mmsg;
+  int was_full;
+  lock_state_t ls;
 
   LWIP_ASSERT("mbox != NULL", mbox != NULL);
   m = *mbox;
   LWIP_ASSERT("m != NULL", m != NULL);
 
   start = sys_now();
-  er = sem_wait_ms(m->sem_empty->id, timeout);
-  if (er != E_OK) {
-    return SYS_ARCH_TIMEOUT;
+  for (;;) {
+    er = sem_wait_ms(m->sem_empty->id, timeout);
+    if (er != E_OK) {
+      return SYS_ARCH_TIMEOUT;
+    }
+
+    begin_critical_section(ls);
+    if (m->used == 0) {
+      end_critical_section(ls);
+      if (timeout != 0) {
+        u32_t waited = sys_now() - start;
+        if (waited >= timeout)
+          return SYS_ARCH_TIMEOUT;
+        timeout -= waited;
+        start = sys_now();
+      }
+      continue;
+    }
+    was_full = (m->used >= m->size);
+    mmsg = mbox_dequeue_unlocked(m);
+    end_critical_section(ls);
+
+    if (was_full)
+      (void)sig_sem(m->sem_full->id);
+
+    if (msg != NULL) {
+      *msg = mmsg;
+    }
+    return sys_now() - start;
   }
-
-  lock_state_t lev1;
-  begin_critical_section(lev1);
-  LWIP_ASSERT("mbox not empty", m->used > 0);
-  mmsg = mbox_dequeue_unlocked(m);
-  end_critical_section(lev1);
-
-  (void)sig_sem(m->sem_full->id);
-
-  if (msg != NULL) {
-    *msg = mmsg;
-  }
-  return sys_now() - start;
 }
 
 u32_t sys_arch_mbox_tryfetch(sys_mbox_t *mbox, void **msg)
 {
   struct sys_mbox *m;
   void *mmsg;
+  int was_full;
+  lock_state_t ls;
 
   LWIP_ASSERT("mbox != NULL", mbox != NULL);
   m = *mbox;
@@ -488,13 +505,17 @@ u32_t sys_arch_mbox_tryfetch(sys_mbox_t *mbox, void **msg)
     return SYS_MBOX_EMPTY;
   }
 
-  lock_state_t lev2;
-  begin_critical_section(lev2);
-  LWIP_ASSERT("mbox not empty", m->used > 0);
+  begin_critical_section(ls);
+  if (m->used == 0) {
+    end_critical_section(ls);
+    return SYS_MBOX_EMPTY;
+  }
+  was_full = (m->used >= m->size);
   mmsg = mbox_dequeue_unlocked(m);
-  end_critical_section(lev2);
+  end_critical_section(ls);
 
-  (void)sig_sem(m->sem_full->id);
+  if (was_full)
+    (void)sig_sem(m->sem_full->id);
 
   if (msg != NULL) {
     *msg = mmsg;
@@ -584,8 +605,7 @@ sys_thread_new(const char *name, lwip_thread_fn thread, void *arg,
   thread_pool_init_ids();
 
   slot = NULL;
-  lock_state_t lev3;
-  begin_critical_section(lev3);
+  BEGIN_CRITICAL_SECTION;
   for (i = 0; i < LWIP_THREAD_COUNT; i++) {
     if (!thread_pool[i].used) {
       thread_pool[i].used = 1;
@@ -593,7 +613,7 @@ sys_thread_new(const char *name, lwip_thread_fn thread, void *arg,
       break;
     }
   }
-  end_critical_section(lev3);
+  END_CRITICAL_SECTION;
 
   if (slot == NULL) {
     LWIP_ASSERT("lwIP thread pool exhausted", 0);

@@ -18,6 +18,9 @@ run: sub
 		-nographic \
 		-smp 1 \
 		-m 128M \
+		-global virtio-mmio.force-legacy=false \
+		-netdev user,id=net0,hostfwd=tcp::10007-:7 \
+		-device virtio-net-device,netdev=net0,bus=virtio-mmio-bus.0 \
 		-kernel $(TARGET)
 
 .PHONY: $(SUBDIRS) run
