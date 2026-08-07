@@ -1,0 +1,77 @@
+#
+# Cortex-A53 AArch64 EL1 makefile
+#
+ASM = $(CROSS_COMPILE)as
+CC = $(CROSS_COMPILE)gcc
+RM = rm -rf
+LNK = $(CROSS_COMPILE)gcc
+AR = $(CROSS_COMPILE)ar
+SIZE = $(CROSS_COMPILE)size
+CP = cp -f
+MV = mv -p
+CAT = cat
+DD = dd
+MKDIR = mkdir -p
+#
+KERNEL_DEV = cortex-a53
+#
+OBJDIR = obj
+LISTDIR = list
+#
+
+ifeq ($(DEBUG), 1)
+	CFLAGS_OPT := -g -Og
+else
+	CFLAGS_OPT := -Os
+endif
+
+#
+FLAGS_COMMON := \
+	-mcpu=cortex-a53 \
+	-ffreestanding \
+	-fno-builtin \
+	-I$(KERNEL_DIR)/include \
+	-I$(KERNEL_DIR)/config/$(KERNEL_DEV) \
+
+CFLAGS += $(FLAGS_COMMON) $(CFLAGS_OPT)
+CFLAGS += -Wall -fdata-sections -ffunction-sections -MMD -MP
+CFLAGS += --specs=nosys.specs
+
+# Prefer gcc as assembler driver (handles .S + includes)
+FLAGS += $(FLAGS_COMMON)
+
+LDFLAGS += --specs=nosys.specs
+LDFLAGS += -Wl,-Map="$(TARGET).map" -Wl,--gc-sections -static
+LDFLAGS += -nostartfiles
+LDFLAGS += $(FLAGS_COMMON)
+LDFLAGS += -Wl,--start-group -lc -lgcc -Wl,--end-group
+
+OBJS = $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
+OBJS += $(patsubst %.S,%_.o,$(filter %.S,$(SRCS)))
+OBJS += $(patsubst %.s,%_.o,$(filter %.s,$(SRCS)))
+LIST = $(patsubst %.c,%.lst,$(filter %.c,$(SRCS)))
+
+vpath %.o $(OBJDIR)
+vpath %.lst $(LISTDIR)
+
+all: sub
+
+$(OBJDIR):
+	$(MKDIR) $(OBJDIR)
+
+$(LISTDIR):
+	$(MKDIR) $(LISTDIR)
+
+%_.o: %.S
+	$(CC) $(CFLAGS) -c $< -o ../$(OBJDIR)/$@
+
+%_.o: %.s
+	$(CC) $(CFLAGS) -c $< -o ../$(OBJDIR)/$@
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o ../$(OBJDIR)/$(notdir $@)
+
+clean:
+	$(RM) $(OBJDIR) $(LISTDIR) $(TARGET) $(TARGET).map
+
+.PHONY: all clean sub

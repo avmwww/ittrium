@@ -10,3 +10,4 @@
 * tms320c67x
 * cortex-m3
 * cortex-m4
+* cortex-a53 (AArch64 EL1, no MMU; see `example/qemu-a53`)
