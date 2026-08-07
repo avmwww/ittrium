@@ -1,6 +1,7 @@
 # Kria / ZynqMP — Cortex-A53 AArch64 EL1 (no MMU)
 
-Порт ittrium под carrier **kria_rtx** (GEM3 + UART1). Не использует BSP EL3+MMU из no-OS.
+ittrium board port for the **kria_rtx** carrier (GEM3 + UART1).  
+Does **not** use the Xilinx no-OS BSP in EL3+MMU mode — register reference only.
 
 ## Build
 
@@ -10,7 +11,7 @@ cd example/kria-rtx
 make
 ```
 
-Артефакт: `ittrium-kria-rtx.elf` (load `0x00100000`).
+Artifact: `ittrium-kria-rtx.elf` (load address `0x00100000`).
 
 ## Hardware map
 
@@ -23,20 +24,20 @@ make
 
 ## Boot assumptions
 
-- FSBL/`psu_init` уже поднял clocks/MIO/PHY reset
-- Образ стартует в **EL1** (или boot.S сам спускается с EL3/EL2)
-- **MMU/caches off** — как QEMU-порт
-- CNTPCT: `_low_level_init` включает IOU SCNTRS при необходимости
+- FSBL / `psu_init` has already configured clocks, MIO, and PHY reset
+- Image starts in **EL1** (or `boot.S` drops from EL3/EL2)
+- **MMU and caches off** — same model as the QEMU port
+- CNTPCT: `_low_level_init` enables IOU SCNTRS if firmware left it off
 
 ## Bring-up smoke
 
 1. UART1 115200 8N1 → shell
 2. `ps` / `irq` / `load`
-3. `ifconfig` → `gem3` / `192.168.1.50` (правьте IP в `test.c`)
+3. `ifconfig` → `gem3` / `192.168.1.50` (change IP in `test.c` for your LAN)
 4. `ping <gw>` / TCP echo `:7`
 
 ## Notes
 
-- Верх тот же: `CFG_USE_*` + `console` / `netdev` / lwIP
-- kria_rtx no-OS — только референс регистров UART/GEM/PHY
-- Stock KV260/KR260: другие PHY/MIO — сверять DT, не копировать слепо
+- Same upper stack: `CFG_USE_*` + `console` / `netdev` / lwIP
+- kria_rtx no-OS is a register/PHY reference only — do not copy its EL3+MMU bring-up
+- Stock KV260 / KR260 boards often differ in PHY and MIO — check the device tree; do not copy blindly
