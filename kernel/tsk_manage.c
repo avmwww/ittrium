@@ -79,7 +79,8 @@ ER cre_tsk(ID tskid, T_CTSK *pk_ctsk)
   tcb->itskpri = int_priority(pk_ctsk->itskpri);
   tcb->stksz = stksz;
   tcb->actcnt = 0;
-  
+  tcb->run_ticks = 0;
+  tcb->stk_base = stack;
   tcb->stk = (VP)(((VB *) stack) + stksz );
 #ifdef USE_SEPARATE_STACK
   tcb->sstk = (VP)(((VB *) sstack) + stksz );

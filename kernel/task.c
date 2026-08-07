@@ -25,6 +25,9 @@ TCB  *schedtsk;
 TCB	tcb_table[TNUM_TSKID];
 QUEUE	free_tcb;
 
+volatile UW telemetry_wall_ticks;
+volatile UW telemetry_idle_ticks;
+
 
 RDYQUE	ready_queue;
 
@@ -78,6 +81,9 @@ void task_initialize(void)
     tskid = i;
     tcb->tskid = tskid;
     tcb->state = TTS_NOEXS;
+    tcb->stk_base = (VP)0;
+    tcb->stksz = 0;
+    tcb->run_ticks = 0;
     queue_insert(&(tcb->tskque), &free_tcb);
   }
 #ifdef BLK_MEM_SIZE
@@ -95,6 +101,12 @@ void make_dormant(TCB *tcb)
 #ifdef USE_MAILBOX
    tcb->tmq_head = (T_MSG *) 0;
 #endif /* USE_MAILBOX */
+   if (tcb->stk_base && tcb->stksz) {
+     VB *p = (VB *)tcb->stk_base;
+     SIZE n = tcb->stksz;
+     while (n--)
+       *p++ = (VB)0xa5;
+   }
 }
 
 #ifdef INLINE_PRAGMA

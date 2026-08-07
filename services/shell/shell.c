@@ -247,11 +247,54 @@ static int cmd_run(int argc, char **argv)
   return 0;
 }
 
+static int cmd_irq(int argc, char **argv)
+{
+  int fd, n;
+  char buf[128];
+  (void)argc;
+  (void)argv;
+  fd = vfs_open("/proc/interrupts", VFS_O_RDONLY);
+  if (fd < 0) {
+    shell_puts("irq: /proc/interrupts unavailable\r\n");
+    return -1;
+  }
+  while ((n = vfs_read(fd, buf, sizeof(buf) - 1)) > 0) {
+    buf[n] = '\0';
+    shell_puts(buf);
+  }
+  vfs_close(fd);
+  return 0;
+}
+
+static int cmd_load(int argc, char **argv)
+{
+  int fd, n;
+  char buf[80];
+  (void)argc;
+  (void)argv;
+  fd = vfs_open("/sys/cpu/load", VFS_O_RDONLY);
+  if (fd < 0) {
+    fd = vfs_open("/proc/stat", VFS_O_RDONLY);
+    if (fd < 0) {
+      shell_puts("load: n/a\r\n");
+      return -1;
+    }
+  }
+  while ((n = vfs_read(fd, buf, sizeof(buf) - 1)) > 0) {
+    buf[n] = '\0';
+    shell_puts(buf);
+  }
+  vfs_close(fd);
+  return 0;
+}
+
 void shell_init_builtins(void)
 {
   shell_register("help",  "list commands", cmd_help);
   shell_register("ps",    "list tasks (/proc/tasks)", cmd_ps);
   shell_register("ticks", "system ticks", cmd_ticks);
+  shell_register("irq",   "IRQ counters (/proc/interrupts)", cmd_irq);
+  shell_register("load",  "CPU idle% (/sys/cpu/load)", cmd_load);
   shell_register("ls",    "list directory", cmd_ls);
   shell_register("cat",   "print file", cmd_cat);
   shell_register("mount", "list mounts", cmd_mount);

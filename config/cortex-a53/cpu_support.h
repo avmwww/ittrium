@@ -105,6 +105,9 @@ typedef uint64_t lock_state_t;
 #define end_critical_section(_ctx)      do { cpu_set_daif(_ctx); } while (0)
 
 void install_handler(FP handler, INHNO vec_no, UB prio);
+
+extern volatile UW irq_count[32];
+const char *irq_vec_name(unsigned vec);
 void _int_init(void);
 void low_level_init(void);
 

@@ -46,6 +46,8 @@ struct task_control_block {
   VP      sstk;      // Base address of task system stack space	
 #endif // USE_SEPARATE_STACK
   SIZE    stksz;     // Task stack size (in bytes)
+  VP      stk_base;  // Low address of stack (for canary / HWM)
+  UW      run_ticks; // Scheduler ticks while this task was runtsk
   ID      tskid;
   VP_INT  exinf;     // Task extend information
   ATR     tskatr;    // Task attribute
@@ -65,6 +67,9 @@ struct task_control_block {
   ER     *wercd;
   TMEB    wtmeb;
 };
+
+extern volatile UW telemetry_wall_ticks;
+extern volatile UW telemetry_idle_ticks;
 
 extern TCB	*runtsk;
 extern TCB	*schedtsk;

@@ -20,6 +20,8 @@ struct ivt_t {
 	UW prio;
 } int_vector_table[32];
 
+volatile UW irq_count[32];
+
 uint64_t idle_stack[IDLE_TSK_STACK_SIZE / sizeof(uint64_t)];
 
 extern void vectors_start(void);
@@ -138,6 +140,9 @@ void irq_handle(uint32_t iar)
 	else
 		return;
 
+	if ((unsigned)vec < 32u)
+		irq_count[vec]++;
+
 	int_nesting++;
 	if (int_vector_table[vec].func)
 		int_vector_table[vec].func();
@@ -193,4 +198,14 @@ uint32_t gic_acknowledge(void)
 void gic_eoi(uint32_t iar)
 {
 	GICC_EOIR = iar;
+}
+
+const char *irq_vec_name(unsigned vec)
+{
+	switch (vec) {
+	case TICKER_VEC_NO: return "timer";
+	case UART_VEC_NO: return "uart";
+	case VIRTIO_NET_VEC_NO: return "virtio-net";
+	default: return "?";
+	}
 }

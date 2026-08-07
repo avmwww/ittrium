@@ -16,6 +16,7 @@
 #include "ittrium.h"
 #include "queue.h"
 #include "timer.h"
+#include "task.h"
 
 static QUEUE	timer_queue;
 
@@ -62,6 +63,12 @@ void timer_handler(void)
   TMEB *next;
 
   if (timer_hw_enter()) return;
+
+  telemetry_wall_ticks++;
+  if (runtsk)
+    runtsk->run_ticks++;
+  else
+    telemetry_idle_ticks++;
 
   BEGIN_CRITICAL_SECTION;
   while (event != (TMEB *)&timer_queue) {

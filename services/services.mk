@@ -60,6 +60,10 @@ ifeq ($(CFG_USE_SYSFS),1)
 SRCS += sysfs.c
 endif
 
+ifneq ($(filter 1,$(CFG_USE_PROCFS) $(CFG_USE_SYSFS)),)
+SRCS += telemetry.c
+endif
+
 ifeq ($(CFG_USE_SHELL),1)
 SRCS += shell.c lineedit.c
 endif
