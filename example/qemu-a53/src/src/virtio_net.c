@@ -219,12 +219,13 @@ static int vnet_start_task(void)
   if (cre_flg(VIRTIO_FLG_ID, &pk_cflg) != E_OK)
     return -1;
 
-  pk.tskatr = TA_HLNG;
+  pk.tskatr = TA_HLNG | TA_NAME;
   pk.exinf = 0;
   pk.task = (FP)vnet_task;
   pk.itskpri = VIRTIO_NET_TASK_PRIO;
   pk.stksz = VIRTIO_NET_TSK_STACK_SIZE;
   pk.stk = vnet_tsk_stack;
+  pk.name = "virtio-net";
   if (cre_tsk(VIRTIO_NET_TASK_ID, &pk) != E_OK)
     return -1;
   return act_tsk(VIRTIO_NET_TASK_ID) == E_OK ? 0 : -1;

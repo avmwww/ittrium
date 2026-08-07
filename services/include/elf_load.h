@@ -37,7 +37,9 @@ struct elf_image {
 int elf_load(const char *path, struct elf_image *out);
 void elf_unload(struct elf_image *img);
 
-/* Load and create+activate task at entry */
-ER elf_run(const char *path, ID tskid, VP stack, SIZE stksz, PRI pri);
+/* Load and create+activate task at entry.
+ * tskid == 0 → acre_tsk (needs TRSV_TSKID); else cre_tsk(tskid).
+ * Returns assigned task ID (>= TMIN_TSKID) or negative ER. */
+ER_ID elf_run(const char *path, ID tskid, VP stack, SIZE stksz, PRI pri);
 
 #endif

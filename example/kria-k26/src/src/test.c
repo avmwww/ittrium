@@ -45,12 +45,13 @@ static void start_shell(void)
 
   shell_set_io(console_putc, console_getc);
 
-  pk.tskatr = TA_HLNG;
+  pk.tskatr = TA_HLNG | TA_NAME;
   pk.exinf = 0;
   pk.task = (FP)shell_task;
   pk.itskpri = SHELL_TASK_PRIO;
   pk.stksz = SHELL_TSK_STACK_SIZE;
   pk.stk = shell_tsk_stack;
+  pk.name = "shell";
 
   cre_tsk(SHELL_TASK_ID, &pk);
   act_tsk(SHELL_TASK_ID);

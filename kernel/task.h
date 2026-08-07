@@ -51,6 +51,7 @@ struct task_control_block {
   ID      tskid;
   VP_INT  exinf;     // Task extend information
   ATR     tskatr;    // Task attribute
+  char    name[TSK_NAME_LEN]; /* copy of T_CTSK.name when TA_NAME */
   PRI     itskpri;   // Task initial priority
   PRI     tskpri;    // Task current priority
   INT     actcnt;    // Activate request count

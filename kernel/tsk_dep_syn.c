@@ -37,7 +37,7 @@ ER sus_tsk(ID tskid)
   TCB *tcb;
   ER ercd;
 
-  if ((tskid > TMAX_TSKID) ||
+  if ((tskid > (TMAX_TSKID + TRSV_TSKID)) ||
       ((TSK_SELF == tskid)&&((TCB*)0 == runtsk)))
     return E_ID;
 
@@ -72,7 +72,7 @@ ER rsm_tsk(ID tskid)
   TCB *tcb;
   ER ercd;
 
-  if ((tskid > TMAX_TSKID) ||
+  if ((tskid > (TMAX_TSKID + TRSV_TSKID)) ||
       ((TSK_SELF == tskid)&&((TCB*)0 == runtsk)))
     return E_ID;
 

@@ -48,11 +48,17 @@ run /data/app.elf
 
 ## Loadable apps (ELF)
 
+`make` builds `app/hello.elf` and embeds it in romfs as `/hello.elf`.
+
 ```bash
-cd example/qemu-a53/app && make   # hello.elf — PIE, relocated by elf_load
+cd example/qemu-a53 && make && make run
+# in shell:
+ls /
+run /hello.elf
+ps
 ```
 
-Use `services/elf/app.ld` with `-fPIE -pie -Bsymbolic`. Put the file on `/data` and `run /data/hello.elf`.
+App sources: `example/qemu-a53/app/` (linker script `services/elf/app.ld`, PIE + reloc).
 
 ## Networking from the host
 

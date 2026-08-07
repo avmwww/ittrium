@@ -18,6 +18,8 @@
 #define CFG_USE_SYSFS    1
 #define CFG_USE_SHELL    1
 #define CFG_USE_ELF      1
+#define CFG_ELF_ACRE_TSK 1 /* 1: acre_tsk; 0: cre_tsk(ELF_TASK_ID) */
+#define CFG_USE_TSKNAME  1
 #define CFG_USE_LWIP     1
 
 //==============================================================================
@@ -36,12 +38,20 @@ enum {
   LWIP_TASK_4_ID,
   VIRTIO_NET_TASK_ID,
 #endif
-#if CFG_USE_ELF
+#if CFG_USE_ELF && !CFG_ELF_ACRE_TSK
   ELF_TASK_ID,
 #endif
   MAX_TASK_ID
 };
 #define TMAX_TSKID    (MAX_TASK_ID - 1)
+
+#if CFG_USE_ELF && CFG_ELF_ACRE_TSK
+/* 0 => elf_run/cmd_run use acre_tsk from TRSV_TSKID pool */
+#define ELF_TASK_ID   0
+#ifndef TRSV_TSKID
+#define TRSV_TSKID    2
+#endif
+#endif
 
 #if CFG_USE_LWIP
 #define LWIP_TASK_ID_BASE   TCPIP_TASK_ID
@@ -73,6 +83,7 @@ extern uint64_t init_tsk_stack[];
 #define INIT_TASK              init_tsk
 #define INIT_TASK_PRI          HIGH_PRIO
 #define INIT_TASK_STACK        init_tsk_stack
+#define INIT_TASK_NAME         "init"
 
 //==============================================================================
 // Eventflags

@@ -231,7 +231,8 @@ static int load_elf(uint8_t *file, size_t fsz, struct elf_image *out)
     }
   }
 
-  img = (uint8_t *)memalign(16, span ? span : 16);
+  /* AArch64 ADRP is page-relative: image base must be 4KiB-aligned. */
+  img = (uint8_t *)memalign(4096, span ? span : 16);
   if (!img) return -1;
   memset(img, 0, span);
   slide = (uintptr_t)img - (uintptr_t)min_v;
@@ -316,28 +317,48 @@ void elf_unload(struct elf_image *img)
   memset(img, 0, sizeof(*img));
 }
 
-ER elf_run(const char *path, ID tskid, VP stack, SIZE stksz, PRI pri)
+ER_ID elf_run(const char *path, ID tskid, VP stack, SIZE stksz, PRI pri)
 {
   struct elf_image img;
   T_CTSK ctsk;
   ER er;
+  ER_ID id;
+  const char *base = path;
 
   if (elf_load(path, &img) < 0) return E_PAR;
 
+  if (path) {
+    const char *p;
+    for (p = path; *p; p++)
+      if (*p == '/') base = p + 1;
+  }
+
   memset(&ctsk, 0, sizeof(ctsk));
-  ctsk.tskatr = TA_HLNG;
+  ctsk.tskatr = TA_HLNG | TA_NAME;
   ctsk.exinf = 0;
   ctsk.task = (FP)img.entry;
   ctsk.itskpri = pri;
   ctsk.stksz = stksz;
   ctsk.stk = stack;
+  ctsk.name = base;
 
-  er = cre_tsk(tskid, &ctsk);
-  if (er != E_OK) {
-    elf_unload(&img);
-    return er;
+  if (tskid == 0) {
+    id = acre_tsk(&ctsk);
+    if (id <= 0) {
+      elf_unload(&img);
+      return id < 0 ? id : E_NOID;
+    }
+  } else {
+    er = cre_tsk(tskid, &ctsk);
+    if (er != E_OK) {
+      elf_unload(&img);
+      return (ER_ID)er;
+    }
+    id = (ER_ID)tskid;
   }
   img.owned = 0;
-  er = act_tsk(tskid);
-  return er;
+  er = act_tsk((ID)id);
+  if (er != E_OK)
+    return (ER_ID)er;
+  return id;
 }

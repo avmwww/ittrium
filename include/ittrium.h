@@ -29,6 +29,11 @@
 #define TA_WSGL         0x00 // Only a single task is allowed to be in the waiting state
 #define TA_WMUL         0x02 // Multiple tasks are allowed to be in the waiting state
 #define TA_CLR          0x04 // Entire bit pattern will be cleared when a task is released from the waiting state
+/* ittrium: T_CTSK.name is valid; kernel copies into TCB.name[TSK_NAME_LEN] */
+#define TA_NAME         0x8000
+#ifndef TSK_NAME_LEN
+#define TSK_NAME_LEN    16
+#endif
 /******************************************************************************
  ******************************************************************************/
 // The task's initial priority
@@ -115,6 +120,7 @@ typedef struct t_ctsk {
   VP        stk; /* Base address of task stack space */
   /* Other implementation specific fields may be added. */
   VP       sstk; /* Base address of task system stack space */
+  const char *name; /* Optional task name if (tskatr & TA_NAME) */
 } T_CTSK ;
 typedef struct t_rtsk {
   STAT  tskstat; /* Task state */
@@ -217,7 +223,14 @@ typedef struct t_rsem {
 # error "TMAX_TSKID => Maximum task ID value isn't defined, please define it in a kernel_config.h"
 #endif
 
-#define TNUM_TSKID             (TMAX_TSKID - TMIN_TSKID + 1)
+#ifndef TRSV_TSKID
+# define TRSV_TSKID            0 /* Reserved IDs for acre_tsk (after TMAX_TSKID) */
+#endif
+#define TNUM_TSKID             (TMAX_TSKID - TMIN_TSKID + 1 + TRSV_TSKID)
+
+#ifndef CFG_USE_TSKNAME
+# define CFG_USE_TSKNAME       0
+#endif
 
 #include "service_call.h"
 

@@ -599,7 +599,6 @@ sys_thread_new(const char *name, lwip_thread_fn thread, void *arg,
   T_CTSK ctsk;
   ER er;
 
-  LWIP_UNUSED_ARG(name);
   LWIP_UNUSED_ARG(stacksize);
 
   thread_pool_init_ids();
@@ -633,6 +632,10 @@ sys_thread_new(const char *name, lwip_thread_fn thread, void *arg,
 #ifdef USE_SEPARATE_STACK
   ctsk.sstk = (VP)slot->sstack;
 #endif
+  if (name && name[0]) {
+    ctsk.tskatr |= TA_NAME;
+    ctsk.name = name;
+  }
 
   er = cre_tsk(slot->id, &ctsk);
   if (er != E_OK) {

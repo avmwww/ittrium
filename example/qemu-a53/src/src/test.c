@@ -31,6 +31,11 @@
 #include "netif_netdev.h"
 #include "lwip/ip4_addr.h"
 #endif
+#if CFG_USE_ELF && CFG_USE_ROMFS
+/* Embedded by example/qemu-a53/app → hello_elf_bin.o */
+extern const unsigned char _binary_hello_elf_start[];
+extern const unsigned char _binary_hello_elf_end[];
+#endif
 
 uint64_t init_tsk_stack[INIT_TASK_STACK_SIZE / sizeof(uint64_t)];
 #if CFG_USE_SHELL
@@ -44,12 +49,13 @@ static void start_shell(void)
 
   shell_set_io(console_putc, console_getc);
 
-  pk.tskatr = TA_HLNG;
+  pk.tskatr = TA_HLNG | TA_NAME;
   pk.exinf = 0;
   pk.task = (FP)shell_task;
   pk.itskpri = SHELL_TASK_PRIO;
   pk.stksz = SHELL_TSK_STACK_SIZE;
   pk.stk = shell_tsk_stack;
+  pk.name = "shell";
 
   cre_tsk(SHELL_TASK_ID, &pk);
   act_tsk(SHELL_TASK_ID);
@@ -102,6 +108,13 @@ void init_tsk(void *exinf)
 #endif
 #if CFG_USE_ROMFS
   console_puts("romfs...\n");
+#if CFG_USE_ELF
+  {
+    size_t n = (size_t)(_binary_hello_elf_end - _binary_hello_elf_start);
+    if (romfs_add_builtin("hello.elf", _binary_hello_elf_start, n) != 0)
+      console_puts("romfs: hello.elf add failed\n");
+  }
+#endif
   romfs_mount("/", NULL, 0);
 #endif
 #if CFG_USE_PROCFS

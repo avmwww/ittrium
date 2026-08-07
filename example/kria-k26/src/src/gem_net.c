@@ -220,12 +220,13 @@ static int gem_start_rx_task(void)
   if (cre_flg(GEM_FLG_ID, &pk_cflg) != E_OK)
     return -1;
 
-  pk.tskatr = TA_HLNG;
+  pk.tskatr = TA_HLNG | TA_NAME;
   pk.exinf = 0;
   pk.task = (FP)gem_rx_task;
   pk.itskpri = GEM_NET_TASK_PRIO;
   pk.stksz = GEM_NET_TSK_STACK_SIZE;
   pk.stk = gem_tsk_stack;
+  pk.name = "gem-net";
   if (cre_tsk(GEM_NET_TASK_ID, &pk) != E_OK)
     return -1;
   return act_tsk(GEM_NET_TASK_ID) == E_OK ? 0 : -1;

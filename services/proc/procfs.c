@@ -41,6 +41,51 @@ static void append_uint(char *buf, size_t cap, int *n, unsigned v)
     buf[(*n)++] = tmp[i];
 }
 
+/* Left- or right-aligned field of exact width (truncated / pad with spaces). */
+static void append_field(char *buf, size_t cap, int *n,
+                         const char *s, int width, int right)
+{
+  int len = 0;
+  int pad;
+  const char *p = s ? s : "";
+
+  while (p[len]) len++;
+  if (len > width) len = width;
+  pad = width - len;
+  if (right) {
+    while (pad-- > 0 && (size_t)(*n) + 1 < cap)
+      buf[(*n)++] = ' ';
+  }
+  while (len-- > 0 && (size_t)(*n) + 1 < cap)
+    buf[(*n)++] = *p++;
+  if (!right) {
+    while (pad-- > 0 && (size_t)(*n) + 1 < cap)
+      buf[(*n)++] = ' ';
+  }
+}
+
+static void append_uint_field(char *buf, size_t cap, int *n,
+                              unsigned v, int width)
+{
+  char s[16];
+  char tmp[16];
+  int i = 0, len = 0;
+  unsigned x = v;
+
+  if (x == 0)
+    tmp[i++] = '0';
+  else {
+    while (x && i < (int)sizeof(tmp)) {
+      tmp[i++] = (char)('0' + (x % 10u));
+      x /= 10u;
+    }
+  }
+  while (i--)
+    s[len++] = tmp[i];
+  s[len] = '\0';
+  append_field(buf, cap, n, s, width, 1);
+}
+
 static const char *state_name(STAT s)
 {
   if (s == TTS_NOEXS) return "NOEXS";
@@ -52,30 +97,90 @@ static const char *state_name(STAT s)
   return "?";
 }
 
+static void fmt_uint(char *out, int outsz, unsigned v, int *len)
+{
+  char tmp[12];
+  int ti = 0;
+  int n = 0;
+
+  if (outsz <= 0) {
+    *len = 0;
+    return;
+  }
+  if (v == 0)
+    tmp[ti++] = '0';
+  else {
+    while (v && ti < (int)sizeof(tmp)) {
+      tmp[ti++] = (char)('0' + (v % 10u));
+      v /= 10u;
+    }
+  }
+  while (ti-- && n + 1 < outsz)
+    out[n++] = tmp[ti];
+  out[n] = '\0';
+  *len = n;
+}
+
 static int gen_tasks(char *buf, size_t cap)
 {
   int i, n = 0;
-  append_str(buf, cap, &n, "id pri state stk stk% cpu%\n");
+  char stk[20];
+  int sn;
+
+#if CFG_USE_TSKNAME
+  append_field(buf, cap, &n, "id", 2, 1);
+  append_str(buf, cap, &n, " ");
+  append_field(buf, cap, &n, "name", TSK_NAME_LEN, 0);
+  append_str(buf, cap, &n, " ");
+#else
+  append_field(buf, cap, &n, "id", 2, 1);
+  append_str(buf, cap, &n, " ");
+#endif
+  append_field(buf, cap, &n, "pri", 3, 1);
+  append_str(buf, cap, &n, " ");
+  append_field(buf, cap, &n, "state", 5, 0);
+  append_str(buf, cap, &n, " ");
+  append_field(buf, cap, &n, "stk", 11, 1);
+  append_str(buf, cap, &n, " ");
+  append_field(buf, cap, &n, "stk%", 4, 1);
+  append_str(buf, cap, &n, " ");
+  append_field(buf, cap, &n, "cpu%", 4, 1);
+  append_str(buf, cap, &n, "\n");
+
   for (i = 0; i < TNUM_TSKID; i++) {
     TCB *t = &tcb_table[i];
     SIZE used;
+    int ulen, slen;
+
     if (t->state == TTS_NOEXS) continue;
     used = task_stack_used(t);
-    append_uint(buf, cap, &n, (unsigned)t->tskid);
+
+    append_uint_field(buf, cap, &n, (unsigned)t->tskid, 2);
     append_str(buf, cap, &n, " ");
-    append_uint(buf, cap, &n, (unsigned)t->tskpri);
+#if CFG_USE_TSKNAME
+    append_field(buf, cap, &n, t->name[0] ? t->name : "-", TSK_NAME_LEN, 0);
     append_str(buf, cap, &n, " ");
-    append_str(buf, cap, &n, state_name(t->state));
+#endif
+    append_uint_field(buf, cap, &n, (unsigned)t->tskpri, 3);
     append_str(buf, cap, &n, " ");
-    append_uint(buf, cap, &n, (unsigned)used);
-    append_str(buf, cap, &n, "/");
-    append_uint(buf, cap, &n, (unsigned)t->stksz);
+    append_field(buf, cap, &n, state_name(t->state), 5, 0);
     append_str(buf, cap, &n, " ");
-    append_uint(buf, cap, &n, task_stack_pct(t));
+
+    sn = 0;
+    fmt_uint(stk, (int)sizeof(stk), (unsigned)used, &ulen);
+    sn = ulen;
+    if (sn + 1 < (int)sizeof(stk))
+      stk[sn++] = '/';
+    fmt_uint(stk + sn, (int)sizeof(stk) - sn, (unsigned)t->stksz, &slen);
+    sn += slen;
+    stk[sn] = '\0';
+    append_field(buf, cap, &n, stk, 11, 1);
     append_str(buf, cap, &n, " ");
-    append_uint(buf, cap, &n, task_cpu_pct(t));
+    append_uint_field(buf, cap, &n, task_stack_pct(t), 4);
+    append_str(buf, cap, &n, " ");
+    append_uint_field(buf, cap, &n, task_cpu_pct(t), 4);
     append_str(buf, cap, &n, "\n");
-    if ((size_t)n + 24 >= cap) break;
+    if ((size_t)n + 48 >= cap) break;
   }
   if (runtsk) {
     append_str(buf, cap, &n, "run=");

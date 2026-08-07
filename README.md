@@ -159,13 +159,13 @@ Board details: [`example/qemu-a53/README.md`](example/qemu-a53/README.md).
 
 ```bash
 cd example/qemu-a53/app
-make          # → hello.elf (ET_DYN, R_AARCH64_RELATIVE)
+make          # → hello.elf (also embedded into qemu image as /hello.elf)
 ```
 
 - Linker script: [`services/elf/app.ld`](services/elf/app.ld)  
 - Flags: `-fPIE -pie -Bsymbolic` (see app `Makefile`)  
 - Loader slides the image and applies `R_AARCH64_RELATIVE` / `R_AARCH64_ABS64`  
-- Copy to guest `/data`, then: `run /data/hello.elf`  
+- On QEMU: `make run`, then `run /hello.elf`  
 
 Legacy ET_EXEC in `[ELF_LOAD_BASE, +ELF_LOAD_SIZE)` needs no reloc — prefer PIE.
 

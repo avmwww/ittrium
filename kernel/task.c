@@ -78,12 +78,13 @@ void task_initialize(void)
   queue_initialize(&free_tcb);
 
   for(tcb = tcb_table, i = 0; i < TNUM_TSKID; tcb++, i++) {
-    tskid = i;
+    tskid = (ID)(i + TMIN_TSKID);
     tcb->tskid = tskid;
     tcb->state = TTS_NOEXS;
     tcb->stk_base = (VP)0;
     tcb->stksz = 0;
     tcb->run_ticks = 0;
+    tcb->name[0] = '\0';
     queue_insert(&(tcb->tskque), &free_tcb);
   }
 #ifdef BLK_MEM_SIZE

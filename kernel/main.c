@@ -60,6 +60,12 @@ int main(int argc, char **argv)
 #ifdef USE_SEPARATE_STACK
   pk_ctsk.sstk = INIT_TASK_SYS_STACK;
 #endif // USE_SEPARATE_STACK
+#ifdef INIT_TASK_NAME
+  pk_ctsk.tskatr |= TA_NAME;
+  pk_ctsk.name = INIT_TASK_NAME;
+#else
+  pk_ctsk.name = 0;
+#endif
 
   cre_tsk(INIT_TASK_ID, &pk_ctsk);
   act_tsk(INIT_TASK_ID);

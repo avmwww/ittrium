@@ -35,10 +35,12 @@ ER cre_tsk(ID tskid, T_CTSK *pk_ctsk)
   TCB *tcb;
   SIZE stksz;
   
-  if ((tskid > TMAX_TSKID) || (tskid < TMIN_TSKID))
+  if ((tskid > (TMAX_TSKID + TRSV_TSKID)) || (tskid < TMIN_TSKID))
     return E_ID;
   
   tcb = get_tcb(tskid);
+  if (TTS_NOEXS != tcb->state)
+    return E_OBJ;
 
   stksz = pk_ctsk->stksz;
   stack = (VP)0;
@@ -85,11 +87,41 @@ ER cre_tsk(ID tskid, T_CTSK *pk_ctsk)
 #ifdef USE_SEPARATE_STACK
   tcb->sstk = (VP)(((VB *) sstack) + stksz );
 #endif // USE_SEPARATE_STACK
+  tcb->name[0] = '\0';
+  if ((pk_ctsk->tskatr & TA_NAME) && pk_ctsk->name) {
+    UINT ni;
+    for (ni = 0; ni + 1 < TSK_NAME_LEN && pk_ctsk->name[ni]; ni++)
+      tcb->name[ni] = pk_ctsk->name[ni];
+    tcb->name[ni] = '\0';
+  }
   
   make_dormant(tcb);
   END_CRITICAL_SECTION;
   
   return E_OK;
+}
+
+/*
+ * Create Task (ID Number Automatic Assignment) — IDs in
+ * (TMAX_TSKID+1 .. TMAX_TSKID+TRSV_TSKID), see TRSV_TSKID in kernel_config.
+ */
+ER_ID acre_tsk(T_CTSK *pk_ctsk)
+{
+  ID i;
+  ER er;
+
+  if (TRSV_TSKID == 0)
+    return E_NOID;
+
+  for (i = TMAX_TSKID + 1; i <= TMAX_TSKID + TRSV_TSKID; i++) {
+    if (TTS_NOEXS == get_tcb(i)->state) {
+      er = cre_tsk(i, pk_ctsk);
+      if (er != E_OK)
+        return (ER_ID)er;
+      return (ER_ID)i;
+    }
+  }
+  return E_NOID;
 }
 
 /**
@@ -101,7 +133,7 @@ ER act_tsk(ID tskid)
   STAT  state;
   ER ercd;
   
-  if ((tskid > TMAX_TSKID) ||
+  if ((tskid > (TMAX_TSKID + TRSV_TSKID)) ||
       ((TSK_SELF == tskid)&&((TCB*)0 == runtsk))
      )
      return E_ID;
@@ -141,7 +173,7 @@ ER chg_pri(ID tskid, PRI tskpri)
   TCB    *tcb;
   STAT  state;
 
-  if ((tskid > TMAX_TSKID) ||
+  if ((tskid > (TMAX_TSKID + TRSV_TSKID)) ||
       ((TSK_SELF == tskid)&&((TCB*)0 == runtsk)))
     return E_ID;
 

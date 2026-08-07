@@ -219,7 +219,7 @@ static int cmd_mount(int argc, char **argv)
 }
 
 /* Weak stub if elf_load not linked */
-__attribute__((weak)) ER elf_run(const char *path, ID tskid, VP stack, SIZE stksz, PRI pri)
+__attribute__((weak)) ER_ID elf_run(const char *path, ID tskid, VP stack, SIZE stksz, PRI pri)
 {
   (void)path; (void)tskid; (void)stack; (void)stksz; (void)pri;
   return E_NOSPT;
@@ -227,9 +227,14 @@ __attribute__((weak)) ER elf_run(const char *path, ID tskid, VP stack, SIZE stks
 
 static int cmd_run(int argc, char **argv)
 {
-  ER er;
-  ID tid = 10;
-  PRI pri = 5;
+  ER_ID id;
+#if CFG_USE_ELF
+  ID tid = (ID)ELF_TASK_ID; /* 0 => acre_tsk */
+#else
+  ID tid = TMIN_TSKID;
+#endif
+  /* Below shell (SHELL_TASK_PRIO): tight-loop apps must not starve the console */
+  PRI pri = 10;
   static uint8_t stack[4096];
 
   if (argc < 2) {
@@ -238,12 +243,12 @@ static int cmd_run(int argc, char **argv)
   }
   if (argc >= 3) tid = (ID)atoi(argv[2]);
   if (argc >= 4) pri = (PRI)atoi(argv[3]);
-  er = elf_run(argv[1], tid, stack, (SIZE)sizeof(stack), pri);
-  if (er != E_OK) {
-    shell_printf("run: failed (%d)\r\n", (int)er);
+  id = elf_run(argv[1], tid, stack, (SIZE)sizeof(stack), pri);
+  if (id < 0) {
+    shell_printf("run: failed (%d)\r\n", (int)id);
     return -1;
   }
-  shell_printf("run: task %d started\r\n", (int)tid);
+  shell_printf("run: task %d started\r\n", (int)id);
   return 0;
 }
 
