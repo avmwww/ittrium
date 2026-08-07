@@ -46,6 +46,14 @@ cat /sys/cpu/load
 run /data/app.elf
 ```
 
+## Loadable apps (ELF)
+
+```bash
+cd example/qemu-a53/app && make   # hello.elf — PIE, relocated by elf_load
+```
+
+Use `services/elf/app.ld` with `-fPIE -pie -Bsymbolic`. Put the file on `/data` and `run /data/hello.elf`.
+
 ## Networking from the host
 
 QEMU **user-net (SLIRP)** does not forward ICMP host→guest, so `ping 10.0.2.15` from the host will not work.

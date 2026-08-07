@@ -1,38 +1,21 @@
 #include "drv/netdev.h"
+#include "drv/device.h"
 #include <string.h>
-
-#define NETDEV_MAX 4
-
-static struct netdev *g_devs[NETDEV_MAX];
-static int g_ndev;
 
 int netdev_register(struct netdev *dev)
 {
-  int i;
-
   if (!dev || !dev->name || !dev->ops)
     return -1;
-  if (g_ndev >= NETDEV_MAX)
-    return -1;
-  for (i = 0; i < g_ndev; i++) {
-    if (strcmp(g_devs[i]->name, dev->name) == 0)
-      return -1;
-  }
-  g_devs[g_ndev++] = dev;
-  return 0;
+  return itt_device_add(dev->name, ITT_DEV_NET, dev);
 }
 
 struct netdev *netdev_get(const char *name)
 {
-  int i;
+  struct itt_device *d = itt_device_find(name);
 
-  if (!name)
+  if (!d || d->class != ITT_DEV_NET)
     return 0;
-  for (i = 0; i < g_ndev; i++) {
-    if (strcmp(g_devs[i]->name, name) == 0)
-      return g_devs[i];
-  }
-  return 0;
+  return (struct netdev *)d->drv;
 }
 
 int netdev_init(struct netdev *dev)

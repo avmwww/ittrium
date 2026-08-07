@@ -32,7 +32,7 @@ Context switch, dispatch, and IRQ handling live in the CPU port (`config/<cpu>/`
 | `CFG_USE_PROCFS` | `/proc` (tasks, interrupts, stat, …) |
 | `CFG_USE_SYSFS` | `/sys` (cpu: el, midr, load, …) |
 | `CFG_USE_SHELL` | Command shell + line editor |
-| `CFG_USE_ELF` | Load/run static AArch64 ELF from the FS |
+| `CFG_USE_ELF` | Load/run static AArch64 ELF from the FS (`run`); prefer PIE + `services/elf/app.ld` |
 | `CFG_USE_LWIP` | lwIP (`NO_SYS=0`) + shell `ifconfig` / `arp` / `ping` |
 
 Shared driver upper layer (board-independent):
@@ -154,6 +154,20 @@ From the host, use TCP instead, e.g. `nc 127.0.0.1 10007` (echo on guest port 7)
 Guest → gateway `ping 10.0.2.2` works. Real host↔guest ping needs tap networking.
 
 Board details: [`example/qemu-a53/README.md`](example/qemu-a53/README.md).
+
+### Loadable ELF apps (PIE + reloc)
+
+```bash
+cd example/qemu-a53/app
+make          # → hello.elf (ET_DYN, R_AARCH64_RELATIVE)
+```
+
+- Linker script: [`services/elf/app.ld`](services/elf/app.ld)  
+- Flags: `-fPIE -pie -Bsymbolic` (see app `Makefile`)  
+- Loader slides the image and applies `R_AARCH64_RELATIVE` / `R_AARCH64_ABS64`  
+- Copy to guest `/data`, then: `run /data/hello.elf`  
+
+Legacy ET_EXEC in `[ELF_LOAD_BASE, +ELF_LOAD_SIZE)` needs no reloc — prefer PIE.
 
 ---
 
@@ -306,16 +320,20 @@ Reference: `config/cortex-a53/` plus a working `example/qemu-a53`.
 ```
 shell / VFS / lwIP
         │
-   console / netdev API     ← services/drv, services/net
+   console / netdev API
+        │
+   g_ittrium_devices     ← single device pool (class + name + drv)
         │
    uart.c / virtio_net.c / gem_net.c   ← example/<board> only
 ```
 
 Rules:
 
-- services must **not** hard-code `UART_BASE` / GIC SPI numbers;  
-- a new SoC = new lower half + `target.h` / `kernel_config.h`;  
-- QEMU and Kria share the same upper stack.
+- the only shared global for I/O drivers is `g_ittrium_devices` (`services/drv/device.c`);
+- `console_register` / `netdev_register` add entries to that pool;
+- services must **not** hard-code `UART_BASE` / GIC SPI numbers;
+- a new SoC = new lower half + `target.h` / `kernel_config.h`;
+- QEMU and Kria K26 share the same upper stack.
 
 ---
 

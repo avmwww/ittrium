@@ -12,6 +12,13 @@
 #define ELF_LOAD_SIZE  (512u * 1024u)
 #endif
 
+/*
+ * Preferred apps: PIE linked with services/elf/app.ld (-fPIE -pie -Bsymbolic).
+ * Loader slides the image and applies R_AARCH64_RELATIVE / R_AARCH64_ABS64.
+ *
+ * Legacy: ET_EXEC whose PT_LOAD fit [ELF_LOAD_BASE, +ELF_LOAD_SIZE) — no reloc.
+ */
+
 #define ITRM_MAGIC  0x4D525449u /* 'ITRM' LE */
 
 struct itrm_hdr {

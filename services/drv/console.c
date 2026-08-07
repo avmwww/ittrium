@@ -1,25 +1,34 @@
 #include "drv/console.h"
+#include "drv/device.h"
 
-static const struct console_ops *g_con;
+static const struct console_ops *console_ops(void)
+{
+  struct itt_device *d = itt_device_find_class(ITT_DEV_CONSOLE, 0);
+
+  return d ? (const struct console_ops *)d->drv : 0;
+}
 
 int console_register(const struct console_ops *ops)
 {
   if (!ops || !ops->putc || !ops->getc)
     return -1;
-  g_con = ops;
-  return 0;
+  return itt_device_add("console", ITT_DEV_CONSOLE, (void *)ops);
 }
 
 void console_init(void)
 {
-  if (g_con && g_con->init)
-    g_con->init();
+  const struct console_ops *ops = console_ops();
+
+  if (ops && ops->init)
+    ops->init();
 }
 
 void console_putc(char c)
 {
-  if (g_con && g_con->putc)
-    g_con->putc(c);
+  const struct console_ops *ops = console_ops();
+
+  if (ops && ops->putc)
+    ops->putc(c);
 }
 
 void console_puts(const char *s)
@@ -32,7 +41,9 @@ void console_puts(const char *s)
 
 int console_getc(void)
 {
-  if (g_con && g_con->getc)
-    return g_con->getc();
+  const struct console_ops *ops = console_ops();
+
+  if (ops && ops->getc)
+    return ops->getc();
   return -1;
 }

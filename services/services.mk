@@ -31,7 +31,7 @@ vpath %.c $(SERVICES)/elf
 vpath %.c $(SERVICES)/net
 vpath %.c $(SERVICES)/net/arch
 
-SRCS += console.c netdev.c
+SRCS += device.c console.c netdev.c
 
 ifeq ($(CFG_USE_VFS),1)
 SRCS += vfs.c
