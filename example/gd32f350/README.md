@@ -1,6 +1,6 @@
-# GD32F350 example
+# GD32F350 — Cortex-M4 + USB CDC
 
-Cortex-M4 board example using the GD32F3x0 firmware library.
+Board example for `config/cortex-m4`: USB FS **CDC** echo device, with an FPU-capable task (`TA_FPU`).
 
 ## Dependencies
 
@@ -16,3 +16,18 @@ cd example/gd32f350
 make clean
 make
 ```
+
+Toolchain: `arm-none-eabi-gcc`. The tree under `GD32_FW` supplies CMSIS, standard peripheral, and USBFS CDC class sources.
+
+## What it does
+
+- USB FS device (CDC) — host sees a virtual COM port
+- IRQ → eventflag → USB task handles CDC RX/TX
+- Float work in the USB task exercises M4 FPU context save/restore
+
+No VFS/shell/lwIP — focused on the M4 port + USB class glue.
+
+## Related
+
+- CPU port: [`config/cortex-m4/`](../../config/cortex-m4/)
+- Simpler M3 kernel smoke: [`../stm32l100/`](../stm32l100/)

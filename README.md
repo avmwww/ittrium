@@ -384,8 +384,10 @@ Shell: `ps`, `irq`, `load`.
 
 - [`example/qemu-a53/README.md`](example/qemu-a53/README.md) — QEMU virt, virtio-net, shell  
 - [`example/kria-k26/README.md`](example/kria-k26/README.md) — Kria K26 SOM / GEM3 / UART1  
-
-- [`example/stm32l100/README.md`](example/stm32l100/README.md), [`example/gd32f350/README.md`](example/gd32f350/README.md) — Cortex-M  
+- [`example/stm32l100/README.md`](example/stm32l100/README.md) — Cortex-M3 kernel smoke (eventflag + GPIO)  
+- [`example/gd32f350/README.md`](example/gd32f350/README.md) — Cortex-M4 USB CDC  
+- [`example/c55x/README.md`](example/c55x/README.md) — TMS320 C55x eventflag + soft IRQ  
+- [`example/c54_test/README.md`](example/c54_test/README.md) — TMS320 C54x minimal stub  
 
 ---
 
