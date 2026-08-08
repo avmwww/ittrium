@@ -26,6 +26,16 @@ static const char *hist_get(int back)
   return hist[idx];
 }
 
+int lineedit_hist_count(void)
+{
+  return hist_count;
+}
+
+const char *lineedit_hist_entry(int back)
+{
+  return hist_get(back);
+}
+
 static void redraw(const char *prompt, const char *buf, int len, int pos)
 {
   int i;
@@ -33,7 +43,6 @@ static void redraw(const char *prompt, const char *buf, int len, int pos)
   shell_puts(prompt);
   for (i = 0; i < len; i++) shell_putc(buf[i]);
   shell_puts("\033[K");
-  /* move cursor back if needed */
   for (i = len; i > pos; i--)
     shell_puts("\033[D");
 }
@@ -41,6 +50,7 @@ static void redraw(const char *prompt, const char *buf, int len, int pos)
 int lineedit_read(char *buf, int buflen, const char *prompt)
 {
   int len = 0, pos = 0, c, hist_nav = 0;
+  int tab_pending = 0;
   char seq[2];
 
   if (!buf || buflen < 2) return -1;
@@ -52,6 +62,18 @@ int lineedit_read(char *buf, int buflen, const char *prompt)
     c = shell_getc();
     if (c < 0) continue;
 
+    if (c == '\t') {
+      int n = shell_complete_cmds(buf, buflen, &len, &pos, tab_pending);
+      if (n > 1 && tab_pending)
+        redraw(prompt, buf, len, pos);
+      else if (n >= 1)
+        redraw(prompt, buf, len, pos);
+      tab_pending = (n > 1) ? 1 : 0;
+      hist_nav = 0;
+      continue;
+    }
+    tab_pending = 0;
+
     if (c == '\r' || c == '\n') {
       shell_puts("\r\n");
       buf[len] = '\0';
@@ -60,7 +82,6 @@ int lineedit_read(char *buf, int buflen, const char *prompt)
     }
     if (c == 0x7f || c == 0x08) { /* backspace */
       if (pos > 0) {
-        int i;
         memmove(buf + pos - 1, buf + pos, (size_t)(len - pos));
         pos--;
         len--;

@@ -1,18 +1,7 @@
-/******************************************************************************
-**	Filename:		tsk_manage.c
-**	Purpose:		
-**	Author:			Andrey Mitrofanov
-**	Environment:		ittrium (mITRON) Real Time Kernel
-**	History:
-**
-**	Version:		1.0
-**	Notes:			
-**
-**	(c) 2004 Copyright Andrey Mitrofanov.
-**	Copying or other reproduction of
-**	this program except for archival purposes is prohibited
-**	without the prior written consent of author.
-*******************************************************************************/
+/* ittrium kernel — tsk_manage.c
+ * Copyright (c) 2004-2026 Andrey Mitrofanov
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 #include "ittrium.h"
 #include "task.h"
 #include "wait.h"
@@ -74,11 +63,11 @@ ER cre_tsk(ID tskid, T_CTSK *pk_ctsk)
 
   BEGIN_CRITICAL_SECTION;
   
-  queue_delete(&(tcb->tskque));
+  kqueue_remove(&(tcb->qnode));
   tcb->exinf = pk_ctsk->exinf;
   tcb->tskatr = pk_ctsk->tskatr;
   tcb->task = pk_ctsk->task;
-  tcb->itskpri = int_priority(pk_ctsk->itskpri);
+  tcb->itskpri = pri_to_index(pk_ctsk->itskpri);
   tcb->stksz = stksz;
   tcb->actcnt = 0;
   tcb->run_ticks = 0;
@@ -95,7 +84,7 @@ ER cre_tsk(ID tskid, T_CTSK *pk_ctsk)
     tcb->name[ni] = '\0';
   }
   
-  make_dormant(tcb);
+  task_make_dormant(tcb);
   END_CRITICAL_SECTION;
   
   return E_OK;
@@ -122,6 +111,52 @@ ER_ID acre_tsk(T_CTSK *pk_ctsk)
     }
   }
   return E_NOID;
+}
+
+/*
+ * Delete task. Target must not be the invoking task. Non-dormant tasks are
+ * forced out of ready/wait queues first (needed by elf_kill).
+ */
+ER del_tsk(ID tskid)
+{
+  TCB *tcb;
+  ER ercd;
+
+  if ((tskid > (TMAX_TSKID + TRSV_TSKID)) || (tskid < TMIN_TSKID))
+    return E_ID;
+
+  BEGIN_CRITICAL_SECTION;
+  do {
+    tcb = get_tcb(tskid);
+    if (TTS_NOEXS == tcb->state) {
+      ercd = E_NOEXS;
+      break;
+    }
+    if (tcb == runtsk) {
+      ercd = E_OBJ;
+      break;
+    }
+
+    if (tcb->state & TTS_WAI)
+      wait_cancel(tcb);
+
+    if (TTS_RDY == tcb->state || TTS_RUN == tcb->state)
+      task_make_unready(tcb);
+
+    tcb->state = TTS_NOEXS;
+    tcb->actcnt = 0;
+    tcb->wait_obj = (OBJCB *)0;
+    tcb->name[0] = '\0';
+    tcb->stk_base = (VP)0;
+    tcb->stksz = 0;
+    kqueue_insert(&(tcb->qnode), &free_tcb);
+    ercd = E_OK;
+  } while (0);
+  END_CRITICAL_SECTION;
+
+  if (E_OK == ercd)
+    dispatch();
+  return ercd;
 }
 
 /**
@@ -155,7 +190,7 @@ ER act_tsk(ID tskid)
       }
     } else {
       make_task_context(tcb);
-      move_to_ready_state(tcb);
+      task_make_ready(tcb);
       ercd = E_OK;
     }
   } while (0);
@@ -188,9 +223,9 @@ ER chg_pri(ID tskid, PRI tskpri)
 
   BEGIN_CRITICAL_SECTION;
   if (TPRI_INI == tskpri)
-    change_task_priority(tcb, tcb->itskpri);
+    task_change_pri(tcb, tcb->itskpri);
   else
-    change_task_priority(tcb, int_priority(tskpri));
+    task_change_pri(tcb, pri_to_index(tskpri));
 
   END_CRITICAL_SECTION;
   dispatch();
@@ -206,11 +241,11 @@ ER chg_pri(ID tskid, PRI tskpri)
 void ext_tsk(void)
 {
   BEGIN_CRITICAL_SECTION;
-  move_from_ready_state(runtsk);
-  make_dormant(runtsk);
+  task_make_unready(runtsk);
+  task_make_dormant(runtsk);
   if (runtsk->actcnt) {
     runtsk->actcnt -= 1;
-    move_to_ready_state(runtsk);
+    task_make_ready(runtsk);
     runtsk = (TCB *)0;
   }
   END_CRITICAL_SECTION;

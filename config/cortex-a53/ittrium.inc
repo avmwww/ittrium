@@ -1,5 +1,5 @@
 /* TCB offsets for AArch64 LP64:
- * QUEUE tskque: 2 * 8 = 16
+ * KQUEUE qnode: 2 * 8 = 16
  * CTXB  tskctxb.sp @ 16, .pc @ 24
  */
 	.set	TCB_sp, 16

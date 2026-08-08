@@ -317,15 +317,70 @@ void elf_unload(struct elf_image *img)
   memset(img, 0, sizeof(*img));
 }
 
+struct elf_mod {
+  ID tskid;
+  struct elf_image img;
+  void *stack;
+  int stack_owned;
+  int used;
+};
+
+static struct elf_mod g_mods[ELF_MODULES_MAX];
+
+static struct elf_mod *mod_find(ID tskid)
+{
+  int i;
+  for (i = 0; i < ELF_MODULES_MAX; i++)
+    if (g_mods[i].used && g_mods[i].tskid == tskid)
+      return &g_mods[i];
+  return 0;
+}
+
+static struct elf_mod *mod_alloc(void)
+{
+  int i;
+  for (i = 0; i < ELF_MODULES_MAX; i++)
+    if (!g_mods[i].used)
+      return &g_mods[i];
+  return 0;
+}
+
+static void mod_free_slot(struct elf_mod *m)
+{
+  if (!m) return;
+  elf_unload(&m->img);
+  if (m->stack_owned && m->stack)
+    free(m->stack);
+  memset(m, 0, sizeof(*m));
+}
+
 ER_ID elf_run(const char *path, ID tskid, VP stack, SIZE stksz, PRI pri)
 {
   struct elf_image img;
+  struct elf_mod *mod;
   T_CTSK ctsk;
   ER er;
   ER_ID id;
   const char *base = path;
+  int stack_owned = 0;
 
+  if (!path || stksz == 0) return E_PAR;
   if (elf_load(path, &img) < 0) return E_PAR;
+
+  mod = mod_alloc();
+  if (!mod) {
+    elf_unload(&img);
+    return E_NOID;
+  }
+
+  if (!stack) {
+    stack = malloc((size_t)stksz);
+    if (!stack) {
+      elf_unload(&img);
+      return E_NOMEM;
+    }
+    stack_owned = 1;
+  }
 
   if (path) {
     const char *p;
@@ -345,20 +400,52 @@ ER_ID elf_run(const char *path, ID tskid, VP stack, SIZE stksz, PRI pri)
   if (tskid == 0) {
     id = acre_tsk(&ctsk);
     if (id <= 0) {
+      if (stack_owned) free(stack);
       elf_unload(&img);
       return id < 0 ? id : E_NOID;
     }
   } else {
     er = cre_tsk(tskid, &ctsk);
     if (er != E_OK) {
+      if (stack_owned) free(stack);
       elf_unload(&img);
       return (ER_ID)er;
     }
     id = (ER_ID)tskid;
   }
-  img.owned = 0;
+
   er = act_tsk((ID)id);
-  if (er != E_OK)
+  if (er != E_OK) {
+    del_tsk((ID)id);
+    if (stack_owned) free(stack);
+    elf_unload(&img);
     return (ER_ID)er;
+  }
+
+  mod->used = 1;
+  mod->tskid = (ID)id;
+  mod->img = img;
+  mod->img.owned = 1;
+  mod->stack = stack;
+  mod->stack_owned = stack_owned;
   return id;
+}
+
+ER elf_kill(ID tskid)
+{
+  struct elf_mod *mod;
+  ER er;
+
+  if (tskid < TMIN_TSKID)
+    return E_ID;
+  mod = mod_find(tskid);
+  if (!mod)
+    return E_NOEXS;
+
+  er = del_tsk(tskid);
+  if (er != E_OK && er != E_NOEXS)
+    return er;
+
+  mod_free_slot(mod);
+  return E_OK;
 }

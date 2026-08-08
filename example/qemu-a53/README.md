@@ -12,7 +12,7 @@ make run
 ```
 
 Requires `aarch64-none-elf-gcc` on `PATH` (or `CROSS_COMPILE=…`).  
-Also requires an lwIP tree at `ittrium/../lwip` when `CFG_USE_LWIP=1`.
+Also requires lwIP at `third_party/lwip` when `CFG_USE_LWIP=1` (override with `LWIPDIR`).
 
 `make run` starts:
 
@@ -32,19 +32,22 @@ Also requires an lwIP tree at `ittrium/../lwip` when `CFG_USE_LWIP=1`.
 ```
 help
 ps
-irq
-load
-ifconfig
-arp
-ping 10.0.2.2
+echo hello
+A=world; echo $A
+set FOO=1 && echo $FOO
+nosuch || echo fallback
+source /demo.sh
+history
+# Tab completes command names
 ls /
 cat /readme.txt
-mount
-cat /proc/tasks
-cat /proc/interrupts
-cat /sys/cpu/load
-run /data/app.elf
+ifconfig
+ping 10.0.2.2
+run /hello.elf
+kill 8
 ```
+
+Bash-like v1 (no fork): quotes, `#` comments, `;` `&&` `||`, `$VAR` / `${VAR}`, `set`/`unset`/`echo`/`source`/`.`, Tab completion, `history`.
 
 ## Loadable apps (ELF)
 
@@ -56,10 +59,12 @@ cd example/qemu-a53 && make && make run
 ls /
 run /hello.elf
 ps
+kill 8
+ps
 ```
 
 App sources: `example/qemu-a53/app/` (linker script `services/elf/app.ld`, PIE + reloc).
-
+`kill <tskid>` deletes the task and frees the loaded image (+ stack).
 ## Networking from the host
 
 QEMU **user-net (SLIRP)** does not forward ICMP host→guest, so `ping 10.0.2.15` from the host will not work.

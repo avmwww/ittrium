@@ -1,27 +1,16 @@
-/******************************************************************************
-**	Filename:		semaphore.c
-**	Purpose:		
-**	Author:			Andrey Mitrofanov
-**	Environment:		ittrium (mITRON) Real Time Kernel
-**	History:
-**
-**	Version:		1.0
-**	Notes:			
-**
-**	(c) 2004 Copyright Andrey Mitrofanov.
-**	Copying or other reproduction of
-**	this program except for archival purposes is prohibited
-**	without the prior written consent of author.
-*******************************************************************************/
+/* ittrium kernel — semaphore.c
+ * Copyright (c) 2004-2026 Andrey Mitrofanov
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 #include "ittrium.h"
 #include "task.h"
 #include "wait.h"
-#include "queue.h"
+#include "kqueue.h"
 
 #ifdef USE_SEMAPHORE
 
 typedef struct semaphore_control_block {
-   GCB   gcb;
+   OBJCB obj;
    INT   semcnt;
    INT   maxsem;
 } SEMCB;
@@ -30,7 +19,7 @@ static SEMCB semcb_table[TNUM_SEMID];
 
 #define get_semcb_by_id(id)   (&(semcb_table[(id) - TMIN_SEMID]))
 
-QUEUE free_semcb;
+KQUEUE free_semcb;
 
 void semaphore_initialize()
 {
@@ -38,13 +27,13 @@ void semaphore_initialize()
    SEMCB   *semcb;
    ID       semid;
 
-   queue_initialize(&free_semcb);
+   kqueue_init(&free_semcb);
 
    for(semcb = semcb_table, i = 0; i < TNUM_SEMID; semcb++, i++) {
       semid = i;
-      semcb->gcb.objid = semid;
-      semcb->gcb.state = TTS_NOEXS;
-      queue_insert(&(semcb->gcb.wait_queue), &free_semcb);
+      semcb->obj.objid = semid;
+      semcb->obj.state = TTS_NOEXS;
+      kqueue_insert(&(semcb->obj.waitq), &free_semcb);
    }
 }
 //==============================================================================
@@ -59,14 +48,14 @@ static ER _cre_sem(ID semid, T_CSEM *pk_csem)
     return E_PAR;
   
   semcb = get_semcb_by_id(semid);
-  if (TTS_NOEXS != semcb->gcb.state)
+  if (TTS_NOEXS != semcb->obj.state)
      return E_OBJ;
   
   BEGIN_CRITICAL_SECTION;
-  queue_delete(&(semcb->gcb.wait_queue));
-  queue_initialize(&(semcb->gcb.wait_queue));
-  semcb->gcb.objatr = pk_csem->sematr;
-  semcb->gcb.state = TTS_RDY;
+  kqueue_remove(&(semcb->obj.waitq));
+  kqueue_init(&(semcb->obj.waitq));
+  semcb->obj.objatr = pk_csem->sematr;
+  semcb->obj.state = TTS_RDY;
   semcb->semcnt = pk_csem->isemcnt;
   semcb->maxsem = pk_csem->maxsem;
   END_CRITICAL_SECTION;
@@ -95,7 +84,7 @@ ER_ID acre_sem(T_CSEM *pk_csem)
 
   for (i = TMAX_SEMID + 1; i < TMAX_SEMID + TRSV_SEMID + 1; i++) {
     semcb = get_semcb_by_id(i);
-    if (TTS_NOEXS == semcb->gcb.state) {
+    if (TTS_NOEXS == semcb->obj.state) {
       err = _cre_sem(i, pk_csem);
       if (err != E_OK)
         return err;
@@ -113,7 +102,7 @@ static ER __wai_sem(ID semid, TMO tmout)
     return E_ID;
   
   semcb = get_semcb_by_id(semid);
-  if (TTS_NOEXS == semcb->gcb.state)
+  if (TTS_NOEXS == semcb->obj.state)
     return E_OBJ;
   
   BEGIN_CRITICAL_SECTION;
@@ -124,7 +113,7 @@ static ER __wai_sem(ID semid, TMO tmout)
   else {
     runtsk->ercd = E_TMOUT;
     if (TMO_POL != tmout)
-      gcb_make_wait(&(semcb->gcb), tmout);
+      obj_make_wait(&(semcb->obj), tmout);
   }
   END_CRITICAL_SECTION;
   dispatch();
@@ -158,12 +147,12 @@ static ER _sig_sem(ID semid)
     return E_ID;
   
   semcb = get_semcb_by_id(semid);
-  if (TTS_NOEXS == semcb->gcb.state)
+  if (TTS_NOEXS == semcb->obj.state)
     return E_OBJ;
   
   BEGIN_CRITICAL_SECTION;
-  if (!queue_is_empty(&(semcb->gcb.wait_queue)))
-    wait_release_ok((TCB *)(semcb->gcb.wait_queue.next));
+  if (!kqueue_empty(&(semcb->obj.waitq)))
+    wait_release_ok((TCB *)(semcb->obj.waitq.next));
   else {
     if (semcb->semcnt >= semcb->maxsem)
       ercd = E_QOVR;

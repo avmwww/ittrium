@@ -24,6 +24,10 @@ ER iact_tsk(ID tskid);
  */
 void ext_tsk(void);
 
+/** Delete Task (any state except invoking task)
+ */
+ER del_tsk(ID tskid);
+
 /** Change Task Priority
  */
 ER chg_pri(ID tskid, PRI tskpri);

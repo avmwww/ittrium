@@ -6,7 +6,7 @@
 
 SERVICES  ?= $(KERNEL_DIR)/services
 LITTLEFS  ?= $(KERNEL_DIR)/third_party/littlefs
-LWIPDIR   ?= $(KERNEL_DIR)/../lwip/src
+LWIPDIR   ?= $(KERNEL_DIR)/third_party/lwip/src
 
 # Read CFG_USE_xxx from kernel_config.h (missing → 0)
 cfg_val = $(shell sed -n 's/^[[:space:]]*#define[[:space:]]\+$(1)[[:space:]]\+\([01]\).*/\1/p' $(KERNEL_CONFIG_H) 2>/dev/null | head -1)
@@ -65,7 +65,7 @@ SRCS += telemetry.c
 endif
 
 ifeq ($(CFG_USE_SHELL),1)
-SRCS += shell.c lineedit.c
+SRCS += shell.c lineedit.c shell_var.c shell_parse.c
 ifeq ($(CFG_USE_LWIP),1)
 SRCS += shell_net.c
 endif

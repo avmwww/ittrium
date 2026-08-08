@@ -1,36 +1,25 @@
-/******************************************************************************
-**	Filename:		task.h
-**	Purpose:		
-**	Author:			Andrey Mitrofanov
-**	Environment:		ittrium (mITRON) Real Time Kernel
-**	History:
-**
-**	Version:		1.0
-**	Notes:			
-**
-**	(c) 2004 Copyright Andrey Mitrofanov.
-**	Copying or other reproduction of
-**	this program except for archival purposes is prohibited
-**	without the prior written consent of author.
-*******************************************************************************/
+/* ittrium kernel — task.h
+ * Copyright (c) 2004-2026 Andrey Mitrofanov
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 #ifndef _TASK_H_
 #define _TASK_H_
 
 
 #include "ittrium.h"
-#include "queue.h"
+#include "kqueue.h"
 #include "timer.h"
-#include "winfo.h"
+#include "waitinfo.h"
 
 typedef struct task_control_block		TCB;
-typedef struct generic_control_block	GCB;
+typedef struct object_control_block	OBJCB;
 
 
-#define int_priority(x)	((INT)((x) - TMIN_TPRI))
-#define ext_tskpri(x)	((PRI)((x) + TMIN_TPRI))
+#define pri_to_index(x)	((INT)((x) - TMIN_TPRI))
+#define index_to_pri(x)	((PRI)((x) + TMIN_TPRI))
 
-struct generic_control_block {
-  QUEUE   wait_queue;
+struct object_control_block {
+  KQUEUE   waitq;
   ID      objid;
   VP      exinf;
   ATR     objatr;
@@ -38,7 +27,7 @@ struct generic_control_block {
 };
 
 struct task_control_block {
-  QUEUE   tskque;
+  KQUEUE   qnode;
   CTXB    tskctxb;
   FP      task;      // Task start address
   VP      stk;       // Base address of task stack space
@@ -56,8 +45,8 @@ struct task_control_block {
   PRI     tskpri;    // Task current priority
   INT     actcnt;    // Activate request count
   STAT    state;
-  GCB     *wgcb;
-  WINFO   winfo;     // Wait info
+  OBJCB     *wait_obj;
+  WAITINFO   waitinfo;
   ER       ercd;
   INT     wupcnt;
   INT     suscnt;
@@ -79,18 +68,18 @@ extern ID 	current_tsk_id;
 extern ID 	shed_tsk_id;
 
 extern TCB		tcb_table[];
-extern QUEUE	free_tcb;
+extern KQUEUE	free_tcb;
 
 #define get_tcb(id)   (&tcb_table[(id) - TMIN_TSKID])
 
 #define get_tcb_self(id) ((id)==TSK_SELF ? runtsk : &tcb_table[(id) - TMIN_TSKID])
 
-extern void make_dormant(TCB *tcb);
-extern void move_to_ready_state(TCB *tcb);
-extern void move_from_ready_state(TCB *tcb);
-extern void change_task_priority(TCB *tcb, PRI priority);
-extern void rotate_ready_queue(PRI priority);
-extern void rotate_ready_queue_run(void);
+extern void task_make_dormant(TCB *tcb);
+extern void task_make_ready(TCB *tcb);
+extern void task_make_unready(TCB *tcb);
+extern void task_change_pri(TCB *tcb, PRI priority);
+extern void rdyq_rotate_at(PRI priority);
+extern void rdyq_rotate_current(void);
 extern void make_task_context(TCB *tcb);
 
 #endif /* _TASK_H_ */

@@ -218,10 +218,16 @@ static int cmd_mount(int argc, char **argv)
   return 0;
 }
 
-/* Weak stub if elf_load not linked */
+/* Weak stubs if elf_load not linked */
 __attribute__((weak)) ER_ID elf_run(const char *path, ID tskid, VP stack, SIZE stksz, PRI pri)
 {
   (void)path; (void)tskid; (void)stack; (void)stksz; (void)pri;
+  return E_NOSPT;
+}
+
+__attribute__((weak)) ER elf_kill(ID tskid)
+{
+  (void)tskid;
   return E_NOSPT;
 }
 
@@ -233,9 +239,12 @@ static int cmd_run(int argc, char **argv)
 #else
   ID tid = TMIN_TSKID;
 #endif
-  /* Below shell (SHELL_TASK_PRIO): tight-loop apps must not starve the console */
   PRI pri = 10;
-  static uint8_t stack[4096];
+#if defined(ELF_TSK_STACK_SIZE)
+  SIZE stksz = (SIZE)ELF_TSK_STACK_SIZE;
+#else
+  SIZE stksz = 4096;
+#endif
 
   if (argc < 2) {
     shell_puts("usage: run <path> [tskid] [pri]\r\n");
@@ -243,12 +252,31 @@ static int cmd_run(int argc, char **argv)
   }
   if (argc >= 3) tid = (ID)atoi(argv[2]);
   if (argc >= 4) pri = (PRI)atoi(argv[3]);
-  id = elf_run(argv[1], tid, stack, (SIZE)sizeof(stack), pri);
+  id = elf_run(argv[1], tid, (VP)0, stksz, pri);
   if (id < 0) {
     shell_printf("run: failed (%d)\r\n", (int)id);
     return -1;
   }
   shell_printf("run: task %d started\r\n", (int)id);
+  return 0;
+}
+
+static int cmd_kill(int argc, char **argv)
+{
+  ER er;
+  ID tid;
+
+  if (argc < 2) {
+    shell_puts("usage: kill <tskid>\r\n");
+    return -1;
+  }
+  tid = (ID)atoi(argv[1]);
+  er = elf_kill(tid);
+  if (er != E_OK) {
+    shell_printf("kill: failed (%d)\r\n", (int)er);
+    return -1;
+  }
+  shell_printf("kill: task %d unloaded\r\n", (int)tid);
   return 0;
 }
 
@@ -293,6 +321,117 @@ static int cmd_load(int argc, char **argv)
   return 0;
 }
 
+static int cmd_echo(int argc, char **argv)
+{
+  int i;
+  for (i = 1; i < argc; i++) {
+    if (i > 1) shell_putc(' ');
+    shell_puts(argv[i]);
+  }
+  shell_puts("\r\n");
+  return 0;
+}
+
+static int cmd_set(int argc, char **argv)
+{
+  char name[SHELL_VAR_NAME];
+  const char *eq, *val;
+  int i;
+
+  if (argc < 2) {
+    shell_var_print_all();
+    return 0;
+  }
+  for (i = 1; i < argc; i++) {
+    eq = strchr(argv[i], '=');
+    if (!eq || eq == argv[i]) {
+      shell_puts("usage: set [NAME=value ...]\r\n");
+      return -1;
+    }
+    if ((eq - argv[i]) >= (int)sizeof(name)) {
+      shell_puts("set: name too long\r\n");
+      return -1;
+    }
+    memcpy(name, argv[i], (size_t)(eq - argv[i]));
+    name[eq - argv[i]] = '\0';
+    val = eq + 1;
+    if (shell_var_set(name, val) != 0) {
+      shell_puts("set: failed\r\n");
+      return -1;
+    }
+  }
+  return 0;
+}
+
+static int cmd_unset(int argc, char **argv)
+{
+  int i;
+  if (argc < 2) {
+    shell_puts("usage: unset <NAME>...\r\n");
+    return -1;
+  }
+  for (i = 1; i < argc; i++) {
+    if (shell_var_unset(argv[i]) != 0) {
+      shell_printf("unset: %s not set\r\n", argv[i]);
+      return -1;
+    }
+  }
+  return 0;
+}
+
+static int cmd_source(int argc, char **argv)
+{
+  int fd, n, i, len = 0;
+  char chunk[64];
+  char line[SHELL_LINE_MAX];
+  int status = 0;
+
+  if (argc < 2) {
+    shell_puts("usage: source <path>\r\n");
+    return -1;
+  }
+  fd = vfs_open(argv[1], VFS_O_RDONLY);
+  if (fd < 0) {
+    shell_puts("source: open failed\r\n");
+    return -1;
+  }
+  while ((n = vfs_read(fd, chunk, sizeof(chunk))) > 0) {
+    for (i = 0; i < n; i++) {
+      char c = chunk[i];
+      if (c == '\r') continue;
+      if (c == '\n') {
+        line[len] = '\0';
+        if (len > 0)
+          status = shell_exec_line(line);
+        len = 0;
+        continue;
+      }
+      if (len + 1 < (int)sizeof(line))
+        line[len++] = c;
+    }
+  }
+  if (len > 0) {
+    line[len] = '\0';
+    status = shell_exec_line(line);
+  }
+  vfs_close(fd);
+  return status;
+}
+
+static int cmd_history(int argc, char **argv)
+{
+  int i, n;
+  (void)argc;
+  (void)argv;
+  n = lineedit_hist_count();
+  for (i = n; i >= 1; i--) {
+    const char *h = lineedit_hist_entry(i);
+    if (!h) continue;
+    shell_printf("%d %s\r\n", n - i + 1, h);
+  }
+  return 0;
+}
+
 void shell_init_builtins(void)
 {
   shell_register("help",  "list commands", cmd_help);
@@ -304,6 +443,13 @@ void shell_init_builtins(void)
   shell_register("cat",   "print file", cmd_cat);
   shell_register("mount", "list mounts", cmd_mount);
   shell_register("run",   "load and run ELF/ITRM", cmd_run);
+  shell_register("kill",  "unload ELF task by tskid", cmd_kill);
+  shell_register("echo",  "print arguments", cmd_echo);
+  shell_register("set",   "set/list variables", cmd_set);
+  shell_register("unset", "unset variables", cmd_unset);
+  shell_register("source","run commands from file", cmd_source);
+  shell_register(".",     "run commands from file", cmd_source);
+  shell_register("history","show command history", cmd_history);
   shell_net_register();
 }
 
@@ -311,21 +457,7 @@ __attribute__((weak)) void shell_net_register(void)
 {
 }
 
-static int split_args(char *line, char **argv, int max)
-{
-  int argc = 0;
-  char *p = line;
-  while (*p && argc < max) {
-    while (*p == ' ' || *p == '\t') p++;
-    if (!*p) break;
-    argv[argc++] = p;
-    while (*p && *p != ' ' && *p != '\t') p++;
-    if (*p) *p++ = '\0';
-  }
-  return argc;
-}
-
-static int shell_dispatch(int argc, char **argv)
+int shell_run_argv(int argc, char **argv)
 {
   int i;
   if (argc <= 0) return 0;
@@ -337,11 +469,73 @@ static int shell_dispatch(int argc, char **argv)
   return -1;
 }
 
+int shell_complete_cmds(char *buf, int buflen, int *len, int *pos, int list)
+{
+  char prefix[SHELL_LINE_MAX];
+  int plen = 0, i, matches = 0;
+  const char *first = 0;
+  int common_len = -1;
+
+  if (!buf || !len || !pos || *len < 0 || *len >= buflen) return 0;
+  /* only complete first word */
+  while (plen < *len && buf[plen] != ' ' && buf[plen] != '\t')
+    plen++;
+  if (plen < *len) return 0; /* already has args */
+  if (plen >= (int)sizeof(prefix)) plen = (int)sizeof(prefix) - 1;
+  memcpy(prefix, buf, (size_t)plen);
+  prefix[plen] = '\0';
+
+  for (i = 0; i < ncmds; i++) {
+    if (strncmp(cmds[i].name, prefix, (size_t)plen) != 0)
+      continue;
+    matches++;
+    if (!first) {
+      first = cmds[i].name;
+      common_len = (int)strlen(first);
+    } else {
+      int j = 0;
+      while (j < common_len && first[j] && cmds[i].name[j] &&
+             first[j] == cmds[i].name[j])
+        j++;
+      common_len = j;
+    }
+  }
+
+  if (matches == 0) return 0;
+
+  if (matches == 1 && first) {
+    int n = (int)strlen(first);
+    if (n >= buflen) n = buflen - 1;
+    memcpy(buf, first, (size_t)n);
+    buf[n] = '\0';
+    *len = n;
+    *pos = n;
+    return 1;
+  }
+
+  if (common_len > plen && first) {
+    if (common_len >= buflen) common_len = buflen - 1;
+    memcpy(buf, first, (size_t)common_len);
+    buf[common_len] = '\0';
+    *len = common_len;
+    *pos = common_len;
+  }
+
+  if (list) {
+    shell_puts("\r\n");
+    for (i = 0; i < ncmds; i++) {
+      if (strncmp(cmds[i].name, prefix, (size_t)plen) != 0)
+        continue;
+      shell_puts(cmds[i].name);
+      shell_puts("\r\n");
+    }
+  }
+  return matches;
+}
+
 void shell_task(void *exinf)
 {
   char line[SHELL_LINE_MAX];
-  char *argv[SHELL_MAX_ARGS];
-  int argc;
 
   (void)exinf;
   shell_init_builtins();
@@ -350,8 +544,7 @@ void shell_task(void *exinf)
   for (;;) {
     if (lineedit_read(line, sizeof(line), "ittrium> ") < 0)
       continue;
-    argc = split_args(line, argv, SHELL_MAX_ARGS);
-    if (argc > 0)
-      shell_dispatch(argc, argv);
+    if (line[0])
+      shell_exec_line(line);
   }
 }

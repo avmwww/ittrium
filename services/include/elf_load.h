@@ -12,6 +12,14 @@
 #define ELF_LOAD_SIZE  (512u * 1024u)
 #endif
 
+#ifndef ELF_MODULES_MAX
+#if TRSV_TSKID > 0
+#define ELF_MODULES_MAX  TRSV_TSKID
+#else
+#define ELF_MODULES_MAX  4
+#endif
+#endif
+
 /*
  * Preferred apps: PIE linked with services/elf/app.ld (-fPIE -pie -Bsymbolic).
  * Loader slides the image and applies R_AARCH64_RELATIVE / R_AARCH64_ABS64.
@@ -39,7 +47,11 @@ void elf_unload(struct elf_image *img);
 
 /* Load and create+activate task at entry.
  * tskid == 0 → acre_tsk (needs TRSV_TSKID); else cre_tsk(tskid).
+ * stack == 0 → malloc(stksz), freed by elf_kill.
  * Returns assigned task ID (>= TMIN_TSKID) or negative ER. */
 ER_ID elf_run(const char *path, ID tskid, VP stack, SIZE stksz, PRI pri);
+
+/* Stop task, free image (+ owned stack). */
+ER elf_kill(ID tskid);
 
 #endif

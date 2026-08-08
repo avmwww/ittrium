@@ -1,18 +1,7 @@
-/******************************************************************************
-**	Filename:		mailbox.c
-**	Purpose:		
-**	Author:			Andrey Mitrofanov
-**	Environment:		ittrium (mITRON) Real Time Kernel
-**	History:
-**
-**	Version:		1.0
-**	Notes:			
-**
-**	(c) 2004 Copyright Andrey Mitrofanov.
-**	Copying or other reproduction of
-**	this program except for archival purposes is prohibited
-**	without the prior written consent of author.
-*******************************************************************************/
+/* ittrium kernel — mailbox.c
+ * Copyright (c) 2004-2026 Andrey Mitrofanov
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 #ifdef USE_MAILBOX
 
 //Check mailbox ID
@@ -35,7 +24,7 @@
  * It is used only if the message queue is FIFO (TA_MFIFO).
  */
 typedef struct mailbox_control_block {
-  GCB    gcb;
+  OBJCB obj;
   T_MSG  mq_head; // Head of message queue 
   T_MSG *mq_tail; // End of message queue 
 } MBXCB;
@@ -54,9 +43,9 @@ void mailbox_initialize()
 
   for(mbxcb = mbxcb_table, id = 0; id  < TNUM_MBXID; mbxcb++, id++) 
   {
-    mbxcb->gcb.objid = id + TMIN_MBXID;
-    mbxcb->gcb.state = TTS_NOEXS;
-    queue_initialize(&(mbxcb->gcb.wait_queue));
+    mbxcb->obj.objid = id + TMIN_MBXID;
+    mbxcb->obj.state = TTS_NOEXS;
+    kqueue_init(&(mbxcb->obj.waitq));
   }
 }
 
@@ -73,7 +62,7 @@ void mailbox_initialize()
 /*
  * Insert a message queue following priority
  */
-INLINE void queue_insert_mpri( T_MSG_PRI *pk_msg, T_MSG *head )
+INLINE void kqueue_insert_mpri( T_MSG_PRI *pk_msg, T_MSG *head )
 {
   T_MSG_PRI *msg;
   T_MSG *prevmsg = head;
@@ -105,13 +94,13 @@ ER cre_mbx(ID mbxid, T_CMBX *pk_cmbx)
   mbxcb = get_mbxcb_by_id(mbxid);
 
   BEGIN_CRITICAL_SECTION;
-  if (TTS_NOEXS != mbxcb->gcb.state) {
+  if (TTS_NOEXS != mbxcb->obj.state) {
     ercd = E_OBJ;
   } else {
-    queue_initialize(&(mbxcb->gcb.wait_queue));
+    kqueue_init(&(mbxcb->obj.waitq));
 
-    mbxcb->gcb.objatr = pk_cmbx->mbxatr;
-    mbxcb->gcb.state  = TTS_RDY;
+    mbxcb->obj.objatr = pk_cmbx->mbxatr;
+    mbxcb->obj.state  = TTS_RDY;
     mbxcb->mq_head.msgque[0] = NULL;
 
     ercd = E_OK;
@@ -136,30 +125,30 @@ ER __snd_mbx(ID mbxid, T_MSG *pk_msg)
   mbxcb = get_mbxcb_by_id(mbxid);
 
   BEGIN_CRITICAL_SECTION;
-  if (TTS_NOEXS == mbxcb->gcb.state) {
+  if (TTS_NOEXS == mbxcb->obj.state) {
     // Non-existent object (specified mailbox is not registered)
     ercd = E_NOEXS;
     goto error_exit;
   } 
 
-  if (mbxcb->gcb.objatr & TA_MPRI) {
+  if (mbxcb->obj.objatr & TA_MPRI) {
     if ( ((T_MSG_PRI*)pk_msg)->msgpri <= 0 ) {
       ercd = E_PAR;
       goto error_exit;
     }
   }
 
-  if ( !queue_is_empty( &(mbxcb->gcb.wait_queue) ) ){
+  if ( !kqueue_empty( &(mbxcb->obj.waitq) ) ){
     //Directly send to receive wait task 
-    tcb = (TCB*)(mbxcb->gcb.wait_queue.next);
-    *(tcb->winfo.mbx.ppk_msg) = pk_msg;
+    tcb = (TCB*)(mbxcb->obj.waitq.next);
+    *(tcb->waitinfo.mbx.ppk_msg) = pk_msg;
     wait_release_ok(tcb);
 
   }else{
     //Connect message to queue
-    if ((mbxcb->gcb.objatr & TA_MPRI) != 0){
+    if ((mbxcb->obj.objatr & TA_MPRI) != 0){
       //Connect message to queue following priority 
-      queue_insert_mpri((T_MSG_PRI*)pk_msg, &mbxcb->mq_head); 
+      kqueue_insert_mpri((T_MSG_PRI*)pk_msg, &mbxcb->mq_head); 
     } else {
       //Connect to end of queue
       nextmsg(pk_msg) = NULL;
@@ -201,7 +190,7 @@ ER __rcv_mbx(ID mbxid, T_MSG **ppk_msg, TMO tmout)
 
   BEGIN_CRITICAL_SECTION;
 
-  if (TTS_NOEXS == mbxcb->gcb.state) {
+  if (TTS_NOEXS == mbxcb->obj.state) {
     // Non-existent object (specified mailbox is not registered)
     runtsk->ercd = E_NOEXS;
   } else {
@@ -214,8 +203,8 @@ ER __rcv_mbx(ID mbxid, T_MSG **ppk_msg, TMO tmout)
       //Ready for receive wait
       runtsk->ercd = E_TMOUT;
       if (tmout != TMO_POL) {
-        runtsk->winfo.mbx.ppk_msg = ppk_msg;
-        gcb_make_wait(&(mbxcb->gcb), tmout);
+        runtsk->waitinfo.mbx.ppk_msg = ppk_msg;
+        obj_make_wait(&(mbxcb->obj), tmout);
         dispatch();
       }
     }
@@ -261,10 +250,10 @@ ER ref_mbx( ID mbxid, T_RMBX *pk_rmbx )
   mbxcb = get_mbxcb_by_id(mbxid);
 
   BEGIN_CRITICAL_SECTION;
-  if (TTS_NOEXS == mbxcb->gcb.state) {
+  if (TTS_NOEXS == mbxcb->obj.state) {
     ercd = E_NOEXS;
   } else {
-    pk_rmbx->wtskid = mbxcb->gcb.objid;
+    pk_rmbx->wtskid = mbxcb->obj.objid;
     pk_rmbx->pk_msg = headmsg(mbxcb);
   }
   END_CRITICAL_SECTION;

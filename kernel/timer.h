@@ -1,25 +1,14 @@
-/******************************************************************************
-**	Filename:		timer.h
-**	Purpose:		
-**	Author:			Andrey Mitrofanov
-**	Environment:		ittrium (mITRON) Real Time Kernel
-**	History:
-**
-**	Version:		1.0
-**	Notes:			
-**
-**	(c) 2004 Copyright Andrey Mitrofanov.
-**	Copying or other reproduction of
-**	this program except for archival purposes is prohibited
-**	without the prior written consent of author.
-*******************************************************************************/
+/* ittrium kernel — timer.h
+ * Copyright (c) 2004-2026 Andrey Mitrofanov
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 #ifndef _TIMER_H_
 #define _TIMER_H_
 #include "ittrium.h"
-#include "queue.h"
+#include "kqueue.h"
 
 typedef struct timer_event_block {
-  QUEUE    queue;
+  KQUEUE    queue;
   RELTIM   count;
   FP_VP    callback;
   VP       arg;
@@ -44,7 +33,7 @@ INLINE
 #endif
 void timer_delete(TMEB *event)
 {
-  queue_delete(&(event->queue));
+  kqueue_remove(&(event->queue));
 }
 
 #endif /* _TIMER_H_ */

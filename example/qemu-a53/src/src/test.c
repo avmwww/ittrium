@@ -115,6 +115,16 @@ void init_tsk(void *exinf)
       console_puts("romfs: hello.elf add failed\n");
   }
 #endif
+  {
+    static const char demo_sh[] =
+      "# ittrium demo script\n"
+      "echo hello from demo.sh\n"
+      "set DEMO=1\n"
+      "echo DEMO=$DEMO\n"
+      "ls /\n";
+    if (romfs_add_builtin("demo.sh", demo_sh, sizeof(demo_sh) - 1) != 0)
+      console_puts("romfs: demo.sh add failed\n");
+  }
   romfs_mount("/", NULL, 0);
 #endif
 #if CFG_USE_PROCFS

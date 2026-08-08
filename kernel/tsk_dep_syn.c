@@ -1,20 +1,9 @@
-/******************************************************************************
-**	Filename:		tsk_dep_syn.c
-**	Purpose:		
-**	Author:			Andrey Mitrofanov
-**	Environment:		ittrium (mITRON) Real Time Kernel
-**	History:
-**
-**	Version:		1.0
-**	Notes:			
-**
-**	(c) 2004 Copyright Andrey Mitrofanov.
-**	Copying or other reproduction of
-**	this program except for archival purposes is prohibited
-**	without the prior written consent of author.
-*******************************************************************************/
+/* ittrium kernel — tsk_dep_syn.c
+ * Copyright (c) 2004-2026 Andrey Mitrofanov
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 #include "ittrium.h"
-#include "queue.h"
+#include "kqueue.h"
 #include "timer.h"
 #include "wait.h"
 #include "task.h"
@@ -23,9 +12,9 @@ ER dly_tsk(RELTIM dlytim)
 {
   BEGIN_CRITICAL_SECTION;
   runtsk->ercd = E_OK;
-  runtsk->wgcb = (GCB *) 0;
+  runtsk->wait_obj = (OBJCB *) 0;
   make_wait(dlytim);
-  queue_initialize(&(runtsk->tskque));
+  kqueue_init(&(runtsk->qnode));
   END_CRITICAL_SECTION;
 
   dispatch();
@@ -55,7 +44,7 @@ ER sus_tsk(ID tskid)
     ++(tcb->suscnt);
     if (TTS_RUN == tcb->state || TTS_RDY == tcb->state) {
       tcb->state = TTS_SUS;
-      move_from_ready_state(tcb);
+      task_make_unready(tcb);
     } else {
       // Waiting state
       tcb->state = TTS_WAS;
@@ -88,7 +77,7 @@ ER rsm_tsk(ID tskid)
       if (TTS_WAS == tcb->state)
         tcb->state = TTS_WAI;
       else
-        move_to_ready_state(tcb);
+        task_make_ready(tcb);
     }
     ercd = E_OK;
   }

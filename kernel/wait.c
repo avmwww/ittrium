@@ -1,18 +1,7 @@
-/******************************************************************************
-**	Filename:		wait.c
-**	Purpose:		
-**	Author:			Andrey Mitrofanov
-**	Environment:		ittrium (mITRON) Real Time Kernel
-**	History:
-**
-**	Version:		1.0
-**	Notes:			
-**
-**	(c) 2004 Copyright Andrey Mitrofanov.
-**	Copying or other reproduction of
-**	this program except for archival purposes is prohibited
-**	without the prior written consent of author.
-*******************************************************************************/
+/* ittrium kernel — wait.c
+ * Copyright (c) 2004-2026 Andrey Mitrofanov
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 #include "ittrium.h"
 #include "task.h"
 #include "wait.h"
@@ -32,8 +21,8 @@ void wait_release_ok(TCB *tcb)
  */
 void wait_release_tmout(TCB *tcb)
 {
-  queue_delete(&(tcb->tskque));
-  move_from_waiting_state(tcb);
+  kqueue_remove(&(tcb->qnode));
+  task_leave_wait(tcb);
 }
 
 /**
@@ -44,7 +33,7 @@ void make_wait(TMO tmout)
   switch (runtsk->state) {
     case TTS_RUN:
     case TTS_RDY:
-      move_from_ready_state(runtsk);
+      task_make_unready(runtsk);
       runtsk->state = TTS_WAI;
       break;
     case TTS_SUS:
@@ -58,12 +47,12 @@ void make_wait(TMO tmout)
 /**
  *
  */
-void wait_delete(QUEUE *wait_queue)
+void wait_delete(KQUEUE *waitq)
 {
   TCB *tcb;
 
-  while (!queue_is_empty(wait_queue)) {
-    tcb = (TCB *)(wait_queue->next);
+  while (!kqueue_empty(waitq)) {
+    tcb = (TCB *)(waitq->next);
     *(tcb->wercd) = E_DLT;
     wait_release(tcb);
   }
@@ -72,28 +61,28 @@ void wait_delete(QUEUE *wait_queue)
 /**
  *
  */
-ID wait_tskid(QUEUE *wait_queue)
+ID wait_tskid(KQUEUE *waitq)
 {
-  if (queue_is_empty(wait_queue))
+  if (kqueue_empty(waitq))
     return((ID) FALSE);
   else
-    return(((TCB *)(wait_queue->next))->tskid);
+    return(((TCB *)(waitq->next))->tskid);
 }
 
 /**
  *
  */
-void gcb_make_wait(GCB *gcb, TMO tmout)
+void obj_make_wait(OBJCB *gcb, TMO tmout)
 {
-  runtsk->wgcb = gcb;
+  runtsk->wait_obj = gcb;
   make_wait(tmout);
   if (gcb->objatr & TA_TPRI) {
     // Object in task priority order
-    queue_insert_tpri(runtsk, &(gcb->wait_queue));
+    kqueue_insert_pri(runtsk, &(gcb->waitq));
   }
   else {
     // Object in FIFO order
-    queue_insert(&(runtsk->tskque), &(gcb->wait_queue));
+    kqueue_insert(&(runtsk->qnode), &(gcb->waitq));
   }
 }
 
@@ -102,5 +91,5 @@ void gcb_make_wait(GCB *gcb, TMO tmout)
  */
 void obj_chg_pri(TCB *tcb, INT oldpri)
 {
-  gcb_change_priority(tcb->wgcb, tcb);
+  obj_change_pri(tcb->wait_obj, tcb);
 }

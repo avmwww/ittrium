@@ -65,18 +65,14 @@ ittrium/
 │   ├── drv/           # console, netdev
 │   ├── vfs/ proc/ shell/ net/ elf/
 │   └── include/
-├── third_party/       # littlefs (and similar)
+├── third_party/
+│   ├── littlefs/      # CFG_USE_LFS
+│   └── lwip/          # CFG_USE_LWIP (clone upstream here)
 ├── example/           # boards / demos
 │   ├── qemu-a53/      # QEMU virt — primary A53 bring-up
 │   ├── kria-k26/      # Kria K26 SOM (UART1 + GEM3)
 │   ├── stm32l100/ gd32f350/ c55x/ …
 └── README.md
-```
-
-External (expected next to the tree for networked examples):
-
-```
-../lwip/               # upstream lwIP (services.mk → LWIPDIR=…/lwip/src)
 ```
 
 ---
@@ -130,7 +126,7 @@ export CROSS_COMPILE=aarch64-none-elf-   # optional override
 For **qemu-a53** also:
 
 - `qemu-system-aarch64`  
-- an **lwIP** tree at `ittrium/../lwip` (when `CFG_USE_LWIP=1`)
+- **lwIP** under `third_party/lwip` (when `CFG_USE_LWIP=1`)
 
 ---
 
@@ -138,8 +134,7 @@ For **qemu-a53** also:
 
 ```bash
 git clone <this-repo> ittrium
-# lwIP beside the repo:
-git clone https://git.savannah.nongnu.org/git/lwip.git ../lwip   # or your mirror
+git clone https://git.savannah.nongnu.org/git/lwip.git ittrium/third_party/lwip   # or your mirror
 
 cd ittrium/example/qemu-a53
 make
@@ -376,7 +371,7 @@ Shell: `ps`, `irq`, `load`.
 | Component | Location | Notes |
 |-----------|----------|-------|
 | littlefs | `third_party/littlefs` | when `CFG_USE_LFS` |
-| lwIP | `../lwip` (outside the repo) | when `CFG_USE_LWIP`; override with `LWIPDIR` |
+| lwIP | `third_party/lwip` | when `CFG_USE_LWIP`; override with `LWIPDIR` (=`…/lwip/src`) |
 
 ---
 

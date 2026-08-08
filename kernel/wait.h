@@ -1,23 +1,12 @@
-/******************************************************************************
-**	Filename:		wait.h
-**	Purpose:		
-**	Author:			Andrey Mitrofanov
-**	Environment:		ittrium (mITRON) Real Time Kernel
-**	History:
-**
-**	Version:		1.0
-**	Notes:			
-**
-**	(c) 2004 Copyright Andrey Mitrofanov.
-**	Copying or other reproduction of
-**	this program except for archival purposes is prohibited
-**	without the prior written consent of author.
-*******************************************************************************/
+/* ittrium kernel — wait.h
+ * Copyright (c) 2004-2026 Andrey Mitrofanov
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 #ifndef _WAIT_H_
 #define _WAIT_H_
 
 #include "task.h"
-#include "queue.h"
+#include "kqueue.h"
 #include "timer.h"
 
 //#define	offsetof(structure, field) ((INT) &(((structure *) 0)->field))
@@ -35,10 +24,10 @@ extern void wait_release_tmout(TCB *tcb);
 #else
 INLINE
 #endif
-void move_from_waiting_state(TCB *tcb)
+void task_leave_wait(TCB *tcb)
 {
   if (tcb->state == TTS_WAI)
-    move_to_ready_state(tcb);
+    task_make_ready(tcb);
   else
     tcb->state = TTS_SUS;
 }
@@ -51,8 +40,8 @@ INLINE
 void wait_release(TCB *tcb)
 {
   timer_delete(&(tcb->wtmeb));
-  queue_delete(&(tcb->tskque));
-  move_from_waiting_state(tcb);
+  kqueue_remove(&(tcb->qnode));
+  task_leave_wait(tcb);
 }
 
 #ifdef INLINE_PRAGMA
@@ -63,7 +52,7 @@ INLINE
 void wait_cancel(TCB *tcb)
 {
   timer_delete(&(tcb->wtmeb));
-  queue_delete(&(tcb->tskque));
+  kqueue_remove(&(tcb->qnode));
 }
 
 #ifdef INLINE_PRAGMA
@@ -71,9 +60,9 @@ void wait_cancel(TCB *tcb)
 #else
 INLINE
 #endif
-QUEUE *queue_search_max_tpri(QUEUE *queue, PRI prio)
+KQUEUE *kqueue_find_pri(KQUEUE *queue, PRI prio)
 {
-  QUEUE *entry;
+  KQUEUE *entry;
 
   for (entry = queue->next; entry != queue; entry = entry->next) {
     if (((TCB *)entry)->tskpri > prio) {
@@ -88,12 +77,12 @@ QUEUE *queue_search_max_tpri(QUEUE *queue, PRI prio)
 #else
 INLINE
 #endif
-void queue_insert_tpri(TCB *tcb, QUEUE *queue)
+void kqueue_insert_pri(TCB *tcb, KQUEUE *queue)
 {
-   QUEUE   *q;
+   KQUEUE   *q;
 
-   q = queue_search_max_tpri(queue, tcb->tskpri);
-   queue_insert(&(tcb->tskque), q);
+   q = kqueue_find_pri(queue, tcb->tskpri);
+   kqueue_insert(&(tcb->qnode), q);
 }
 
 #ifdef INLINE_PRAGMA
@@ -101,16 +90,16 @@ void queue_insert_tpri(TCB *tcb, QUEUE *queue)
 #else
 INLINE
 #endif
-void gcb_change_priority(GCB *gcb, TCB *tcb)
+void obj_change_pri(OBJCB *gcb, TCB *tcb)
 {
-   queue_delete(&(tcb->tskque));
-   queue_insert_tpri(tcb, &(gcb->wait_queue));
+   kqueue_remove(&(tcb->qnode));
+   kqueue_insert_pri(tcb, &(gcb->waitq));
 }
 
 extern void make_wait(TMO tmout);
-extern void wait_delete(QUEUE *wait_queue);
-extern ID   wait_tskid(QUEUE *wait_queue);
-extern void gcb_make_wait(GCB *gcb, TMO tmout);
+extern void wait_delete(KQUEUE *waitq);
+extern ID   wait_tskid(KQUEUE *waitq);
+extern void obj_make_wait(OBJCB *gcb, TMO tmout);
 extern void obj_chg_pri(TCB *tcb, INT oldpri);
 
 #endif /* _WAIT_H_ */

@@ -1,35 +1,24 @@
-/******************************************************************************
-**	Filename:		task.c
-**	Purpose:		
-**	Author:			Andrey Mitrofanov
-**	Environment:		ittrium (mITRON) Real Time Kernel
-**	History:
-**
-**	Version:		1.0
-**	Notes:			
-**
-**	(c) 2004 Copyright Andrey Mitrofanov.
-**	Copying or other reproduction of
-**	this program except for archival purposes is prohibited
-**	without the prior written consent of author.
-*******************************************************************************/
+/* ittrium kernel — task.c
+ * Copyright (c) 2004-2026 Andrey Mitrofanov
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 #include "ittrium.h"
 #include "task.h"
-#include "queue.h"
+#include "kqueue.h"
 #include "wait.h"
-#include "ready_queue.h"
+#include "rdyq.h"
 
 TCB  *runtsk;
 TCB  *schedtsk;
 
 TCB	tcb_table[TNUM_TSKID];
-QUEUE	free_tcb;
+KQUEUE	free_tcb;
 
 volatile UW telemetry_wall_ticks;
 volatile UW telemetry_idle_ticks;
 
 
-RDYQUE	ready_queue;
+RDYQ	rdyq;
 
 #ifdef BLK_MEM_SIZE
 static VB blk_mem[BLK_MEM_SIZE];
@@ -74,8 +63,8 @@ void task_initialize(void)
   ID	tskid;
 
   runtsk = schedtsk = (TCB *) 0;
-  ready_queue_initialize(&ready_queue);
-  queue_initialize(&free_tcb);
+  rdyq_init(&rdyq);
+  kqueue_init(&free_tcb);
 
   for(tcb = tcb_table, i = 0; i < TNUM_TSKID; tcb++, i++) {
     tskid = (ID)(i + TMIN_TSKID);
@@ -85,7 +74,7 @@ void task_initialize(void)
     tcb->stksz = 0;
     tcb->run_ticks = 0;
     tcb->name[0] = '\0';
-    queue_insert(&(tcb->tskque), &free_tcb);
+    kqueue_insert(&(tcb->qnode), &free_tcb);
   }
 #ifdef BLK_MEM_SIZE
   pfree_blk_mem = blk_mem;
@@ -93,7 +82,7 @@ void task_initialize(void)
 }
 
 
-void make_dormant(TCB *tcb)
+void task_make_dormant(TCB *tcb)
 {
    tcb->state = TTS_DMT;
    tcb->tskpri = tcb->itskpri;
@@ -119,60 +108,60 @@ void reschedule(void)
 {
   TCB   *toptsk;
 
-  if (schedtsk != (toptsk = ready_queue_top(&ready_queue)))
+  if (schedtsk != (toptsk = rdyq_top(&rdyq)))
     schedtsk = toptsk;
 }
 
 /**
  * Move task to READY state and insert to ready queue
  */
-void move_to_ready_state(TCB *tcb)
+void task_make_ready(TCB *tcb)
 {
   tcb->state = TTS_RDY;
-  if (ready_queue_insert(&ready_queue, tcb))
+  if (rdyq_insert(&rdyq, tcb))
     schedtsk = tcb;
 }
 
 /**
  * Move task from READY state
  */
-void move_from_ready_state(TCB *tcb)
+void task_make_unready(TCB *tcb)
 {
-  ready_queue_delete(&ready_queue, tcb);
+  rdyq_remove(&rdyq, tcb);
   if (schedtsk == tcb)
-    schedtsk = ready_queue_top(&ready_queue);
+    schedtsk = rdyq_top(&rdyq);
 }
 
 /**
  * Change task priority.
  */
-void change_task_priority(TCB *tcb, PRI priority)
+void task_change_pri(TCB *tcb, PRI priority)
 {
-  ready_queue_delete(&ready_queue, tcb);
+  rdyq_remove(&rdyq, tcb);
   tcb->tskpri = priority;
-  schedtsk = ready_queue_top(&ready_queue);
-  if (ready_queue_insert(&ready_queue, tcb))
+  schedtsk = rdyq_top(&rdyq);
+  if (rdyq_insert(&rdyq, tcb))
     schedtsk = tcb;
 }
 
 /**
  *
  */
-void rotate_ready_queue(PRI priority)
+void rdyq_rotate_at(PRI priority)
 {
-   ready_queue_rotate(&ready_queue, priority);
+   rdyq_rotate(&rdyq, priority);
    reschedule();
 }
 
 /**
  *
  */
-void rotate_ready_queue_run(void)
+void rdyq_rotate_current(void)
 {
    if (schedtsk)
    {
-      ready_queue_rotate(&ready_queue,
-      ready_queue_top_priority(&ready_queue));
+      rdyq_rotate(&rdyq,
+      rdyq_top_pri(&rdyq));
       reschedule();
    }
 }

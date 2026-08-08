@@ -1,28 +1,17 @@
-/******************************************************************************
-**	Filename:		timer.c
-**	Purpose:		
-**	Author:			Andrey Mitrofanov
-**	Environment:		ittrium (mITRON) Real Time Kernel
-**	History:
-**
-**	Version:		1.0
-**	Notes:			
-**
-**	(c) 2004 Copyright Andrey Mitrofanov.
-**	Copying or other reproduction of
-**	this program except for archival purposes is prohibited
-**	without the prior written consent of author.
-*******************************************************************************/
+/* ittrium kernel — timer.c
+ * Copyright (c) 2004-2026 Andrey Mitrofanov
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 #include "ittrium.h"
-#include "queue.h"
+#include "kqueue.h"
 #include "timer.h"
 #include "task.h"
 
-static QUEUE	timer_queue;
+static KQUEUE	timer_queue;
 
 void timer_initialize(void)
 {
-  queue_initialize(&timer_queue);
+  kqueue_init(&timer_queue);
   start_hw_timer();
 }
 
@@ -33,7 +22,7 @@ void timer_shutdown(void)
 
 static void enqueue_tmeb(TMEB *event)
 {
-   queue_insert(&(event->queue), &timer_queue);
+   kqueue_insert(&(event->queue), &timer_queue);
 }
 
 void timer_insert(TMEB *event, TMO tmout, FP_VP callback, VP arg)
@@ -43,7 +32,7 @@ void timer_insert(TMEB *event, TMO tmout, FP_VP callback, VP arg)
 
    if (tmout == TMO_FEVR)
    {
-      queue_initialize(&(event->queue));
+      kqueue_init(&(event->queue));
    }
    else
    {
@@ -74,7 +63,7 @@ void timer_handler(void)
   while (event != (TMEB *)&timer_queue) {
     next = (TMEB *)(event->queue.next);
     if (0 == --event->count) {
-      queue_delete(&(event->queue));
+      kqueue_remove(&(event->queue));
       if (event->callback)
         (*(event->callback))(event->arg);
     }

@@ -1,21 +1,10 @@
-/******************************************************************************
-**	Filename:		eventflags.c
-**	Purpose:		
-**	Author:			Andrey Mitrofanov
-**	Environment:		ittrium (mITRON) Real Time Kernel
-**	History:
-**
-**	Version:		1.0
-**	Notes:			
-**
-**	(c) 2004 Copyright Andrey Mitrofanov.
-**	Copying or other reproduction of
-**	this program except for archival purposes is prohibited
-**	without the prior written consent of author.
-*******************************************************************************/
+/* ittrium kernel тАФ eventflags.c
+ * Copyright (c) 2004-2026 Andrey Mitrofanov
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 #include "ittrium.h"
 #include "task.h"
-#include "queue.h"
+#include "kqueue.h"
 #include "wait.h"
 
 #ifdef USE_EVENTFLAG
@@ -23,7 +12,7 @@
 #define get_flgcb_by_id(id)   (&(flgcb_table[(id) - TMIN_FLGID]))
 
 typedef struct eventflag_control_block {
-   GCB     gcb;
+   OBJCB obj;
    FLGPTN  flgptn;
 } FLGCB;
 
@@ -40,9 +29,9 @@ void eventflag_initialize(void)
 
   for(flgcb = flgcb_table, id = 0; id < TNUM_FLGID; flgcb++, id++) {
     flgid = id;
-    flgcb->gcb.objid = flgid;
-    flgcb->gcb.state = TTS_NOEXS;
-    queue_initialize(&(flgcb->gcb.wait_queue));
+    flgcb->obj.objid = flgid;
+    flgcb->obj.state = TTS_NOEXS;
+    kqueue_init(&(flgcb->obj.waitq));
   }
 }
 //==============================================================================
@@ -66,7 +55,7 @@ INLINE
 #endif
 void clear_flgptn(FLGCB *flgcb)
 {
-  if (flgcb->gcb.objatr & TA_CLR)
+  if (flgcb->obj.objatr & TA_CLR)
      flgcb->flgptn = 0;
 }
 /*******************************************************************************
@@ -87,13 +76,13 @@ ER cre_flg(ID flgid, T_CFLG *pk_cflg)
    
 
   BEGIN_CRITICAL_SECTION;
-  if (TTS_NOEXS != flgcb->gcb.state)
+  if (TTS_NOEXS != flgcb->obj.state)
     ercd = E_OBJ;
   else {
-    queue_initialize(&(flgcb->gcb.wait_queue));
-    flgcb->gcb.objatr = pk_cflg->flgatr;
+    kqueue_init(&(flgcb->obj.waitq));
+    flgcb->obj.objatr = pk_cflg->flgatr;
     flgcb->flgptn = pk_cflg->iflgptn;
-    flgcb->gcb.state = TTS_RDY;
+    flgcb->obj.state = TTS_RDY;
     ercd = E_OK;
   }
   END_CRITICAL_SECTION;
@@ -104,7 +93,7 @@ ER cre_flg(ID flgid, T_CFLG *pk_cflg)
 ER _set_flg(ID flgid, FLGPTN setptn)
 {
   FLGCB *flgcb;
-  QUEUE   *queue;
+  KQUEUE   *queue;
   TCB *tcb;
   MODE wfmode;
   ER err;
@@ -115,20 +104,20 @@ ER _set_flg(ID flgid, FLGPTN setptn)
   BEGIN_CRITICAL_SECTION;
   flgcb = get_flgcb_by_id(flgid);
   
-  if (TTS_NOEXS == flgcb->gcb.state) {
+  if (TTS_NOEXS == flgcb->obj.state) {
     err = E_NOEXS;
   } else {
     flgcb->flgptn |= setptn;
     // Set all waiting    
-    queue = flgcb->gcb.wait_queue.next;
-    while (queue != &(flgcb->gcb.wait_queue)) {
+    queue = flgcb->obj.waitq.next;
+    while (queue != &(flgcb->obj.waitq)) {
       tcb = (TCB *) queue;
       queue = queue->next;
-      wfmode = tcb->winfo.flg.wfmode;
-      if (eventflag_cond(flgcb, tcb->winfo.flg.waiptn, wfmode)) {
-        *(tcb->winfo.flg.p_flgptn) = flgcb->flgptn;
+      wfmode = tcb->waitinfo.flg.wfmode;
+      if (eventflag_cond(flgcb, tcb->waitinfo.flg.waiptn, wfmode)) {
+        *(tcb->waitinfo.flg.p_flgptn) = flgcb->flgptn;
         wait_release_ok(tcb);
-        if (flgcb->gcb.objatr & TA_CLR)
+        if (flgcb->obj.objatr & TA_CLR)
           flgcb->flgptn = 0;
       }
     }
@@ -160,7 +149,7 @@ ER clr_flg(ID flgid, FLGPTN clrptn)
   
   flgcb = get_flgcb_by_id(flgid);
   
-  if (TTS_NOEXS == flgcb->gcb.state)
+  if (TTS_NOEXS == flgcb->obj.state)
     return E_NOEXS;
    
   BEGIN_CRITICAL_SECTION;
@@ -182,14 +171,12 @@ static ER __wai_flg(ID flgid, FLGPTN waiptn, MODE wfmode,
 
   BEGIN_CRITICAL_SECTION;
   flgcb = get_flgcb_by_id(flgid);
-  if (TTS_NOEXS == flgcb->gcb.state) {
+  if (TTS_NOEXS == flgcb->obj.state) {
     runtsk->ercd = E_NOEXS;
   } else {
-    // Если флаг монопольный(только для одной задачи) и очередь флага не пуста
-    if ((flgcb->gcb.objatr & TA_WSGL) && !queue_is_empty(&(flgcb->gcb.wait_queue))) {
+    if ((flgcb->obj.objatr & TA_WSGL) && !kqueue_empty(&(flgcb->obj.waitq))) {
        runtsk->ercd = E_ILUSE;
     } else {
-      // Проверяем установлен наш FLGPTN, если да, то на выход
       if (eventflag_cond(flgcb, waiptn, wfmode)) {
         runtsk->ercd = E_OK;
         *p_flgptn = flgcb->flgptn;
@@ -197,10 +184,10 @@ static ER __wai_flg(ID flgid, FLGPTN waiptn, MODE wfmode,
       } else {
         runtsk->ercd = E_TMOUT;
         if (TMO_POL != tmout) {
-          runtsk->winfo.flg.waiptn = waiptn;
-          runtsk->winfo.flg.wfmode = wfmode;
-          runtsk->winfo.flg.p_flgptn = p_flgptn;
-          gcb_make_wait(&(flgcb->gcb), tmout);
+          runtsk->waitinfo.flg.waiptn = waiptn;
+          runtsk->waitinfo.flg.wfmode = wfmode;
+          runtsk->waitinfo.flg.p_flgptn = p_flgptn;
+          obj_make_wait(&(flgcb->obj), tmout);
           dispatch();
         }
       }
@@ -239,10 +226,10 @@ ER ref_flg(ID flgid, T_RFLG *pk_rflg)
   flgcb = get_flgcb_by_id(flgid);
   
   BEGIN_CRITICAL_SECTION;
-  if (TTS_NOEXS == flgcb->gcb.state) {
+  if (TTS_NOEXS == flgcb->obj.state) {
     err = E_NOEXS;
   } else {
-    pk_rflg->wtskid = flgcb->gcb.objid;
+    pk_rflg->wtskid = flgcb->obj.objid;
     pk_rflg->flgptn = flgcb->flgptn;
     err = E_OK;
   }
