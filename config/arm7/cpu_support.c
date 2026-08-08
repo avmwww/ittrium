@@ -12,71 +12,42 @@
 #define  ARM_SYS_MODE_ARM      (0x0000001FL + ARM_MODE_ARM)
 
 
-/**
- *
- */
 struct ivt_t {
   FP  func;
   UW  prio;
 } static int_vector_table[32];
 
-/**
- *
- */
 void make_task_context(TCB *tcb)
 {
-  // Task stack pointer initialy pointed to first byte after task stack
   UW *pstk;
 
-  // Align stack pointer
   pstk = (UW *)tcb->stk & ~7;
-  // PC, Mask off lower bit in case task is thumb mode
+  /* PC: clear Thumb bit so restore loads a clean address */
   *--pstk = (UW)tcb->task & ~1;
-  // R14 (LR)
-  *--pstk = (UW)0x14141414L;
-  // R12
-  *--pstk = (UW)0x12121212L;
-  // R11
+  *--pstk = (UW)0x14141414L; /* LR */
+  *--pstk = (UW)0x12121212L; /* R12 */
   *--pstk = (UW)0x11111111L;
-  // R10
   *--pstk = (UW)0x10101010L;
-  // R9
   *--pstk = (UW)0x09090909L;
-  // R8
   *--pstk = (UW)0x08080808L;
-  // R7
   *--pstk = (UW)0x07070707L;
-  // R6
   *--pstk = (UW)0x06060606L;
-  // R5
   *--pstk = (UW)0x05050505L;
-  // R4
   *--pstk = (UW)0x04040404L;
-  // R3
   *--pstk = (UW)0x03030303L;
-  // R2
   *--pstk = (UW)0x02020202L;
-  // R1
   *--pstk = (UW)0x01010101L;
-  // R0, function argument
-  *--pstk = (UW)tcb->exinf;
+  *--pstk = (UW)tcb->exinf; /* R0 = task argument */
 
-  // See if task runs in Thumb or ARM mode
-  // Set System state
+  /* CPSR: SYS mode, IRQ+FIQ enabled; Thumb vs ARM from entry LSB */
   if ((UW)tcb->task & 0x01) {
-    // CPSR  (Enable both IRQ and FIQ interrupts, THUMB-mode)
       *--pstk = (UW)ARM_SYS_MODE_THUMB;
   } else {
-    // CPSR  (Enable both IRQ and FIQ interrupts, ARM-mode)
       *--pstk = (UW)ARM_SYS_MODE_ARM;
   }
   tcb->tskctxb.sp = pstk;
 }
 
-/**
- *
- */
-//unsigned short _interrupt_vector;
 void interrupt_handler(INHNO vector)
 {
   if (int_vector_table[vector].func) {
@@ -85,9 +56,6 @@ void interrupt_handler(INHNO vector)
   }
 }
 
-/**
- *
- */
 void _install_handler(FP handler, INHNO vec_no, UB prio)
 {
   if (vec_no < 32) {
@@ -98,9 +66,6 @@ void _install_handler(FP handler, INHNO vec_no, UB prio)
   }
 }
 
-/**
- *
- */
 void _int_init(void)
 {
   int i;
@@ -112,9 +77,6 @@ void _int_init(void)
   }
 }
 
-/**
- *
- */
 void start_hw_timer(void)
 {
   timer_nesting = 0;
@@ -125,16 +87,12 @@ void start_hw_timer(void)
 
   INT_VECTOR0 = IRQ_TABLE_BASE & MASK_INDEX;
 
-  // Configure Timer0
-  T0LOAD =  TIMER_1MS;	// Timer value
+  T0LOAD =  TIMER_1MS;
   T0VALUE = TIMER_1MS;
   T0CLR = 0;
   T0CTRL=0xC8;
 }
 
-/**
- *
- */
 void terminate_hw_timer(void)
 {
   DISABLE_TICKER_INT();
@@ -142,9 +100,6 @@ void terminate_hw_timer(void)
   int_vector_table[TICKER_VEC_NO].prio = 0;
 }
 
-/**
- *
- */
 void low_level_init(void)
 {
   _int_init();

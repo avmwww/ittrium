@@ -3,6 +3,7 @@
         NAME dispatch
 
         PUBLIC dispatch
+        PUBLIC dispatch_r
         EXTERN runtsk
         EXTERN schedtsk
 
@@ -39,36 +40,27 @@
         ARM
 dispatch:
 
-        stmfd sp!, {r4 - r11,lr}   /* ¥ì¥¸¥¹¥¿¤ÎÊİÂ¸ */
-        ldr   r0, =runtsk          /* runtsk¤òÆÉ¤ß¹ş¤à */
+        stmfd sp!, {r4 - r11,lr}
+        ldr   r0, =runtsk
         ldr   r1, [r0]
-        str   sp, [r1,#TCB_sp]      /* ¥¿¥¹¥¯¥¹¥¿¥Ã¥¯¤òÊİÂ¸ */
+        str   sp, [r1,#TCB_sp]
         adr   r2, dispatch_r
-        str   r2, [r1,#TCB_pc]      /* ¼Â¹ÔºÆ³«ÈÖÃÏ¤òÊİÂ¸ */
+        str   r2, [r1,#TCB_pc]
         b     dispatcher_1
 
 dispatch_r:
         ldmfd sp!,{r4 - r11,lr}
-        /*
-         * ¥¿¥¹¥¯Îã³°½èÍı¥ë¡¼¥Á¥ó¤Îµ¯Æ°
-         * dispatch_r ¤Ï dispatcher_1 ¤«¤é¸Æ¤Ó½Ğ¤µ¤ì¤ë¤¿¤á¡¤
-         * tcb¤Î¥¢¥É¥ì¥¹¤Ïr1¤ËÆş¤Ã¤Æ¤¤¤ë
-         */
         mov   pc,lr
 
 dispatcher_1:
-        /*
-         *  ä¦ä¦ä¦ä¦å¬å¦å¦åğåòá-åãáæ¦ô¦¦ä-¦+¬--¿Tãä¦ä¦ä-äüä¦ä¦äùä¦ääáå
-         */
-        ldr   r0, =schedtsk   /* schedtsk äª¦ãä-¦¦äğ */
+        ldr   r0, =schedtsk
         ldr   r1, [r0]
-        ldr   r2, =runtsk     /* schedtsk äª runtskäT */
-        str   r1, [r2]        /* schedtsk äìäää¦ää-ü¦÷ä¦runtskäªNULLäT */
-        ldr   sp, [r1,#TCB_sp] /* å¬å¦åïå¦å¬å+åïäªã¹¦â */
-        ldr   pc, [r1,#TCB_pc] /* -T¦L¦¦¦ëLã+¦äªã¹¦â   */
+        ldr   r2, =runtsk
+        str   r1, [r2]
+        ldr   sp, [r1,#TCB_sp]
+        ldr   pc, [r1,#TCB_pc]
 
 
         CFI EndBlock cfiBlock0
 
         END
-

@@ -10,7 +10,6 @@ void low_level_init(void)
 {
   int i;
 
-  // Initialize vector table
   for (i = 0; i < INT_VEC_NUM; i++) {
     _int_vector_table[i] = (FP)0;
   }
@@ -23,7 +22,6 @@ void install_handler(FP handler, INHNO vec_no)
   END_CRITICAL_SECTION;
 }
 
-// return no 0 if running
 int timer_hw_enter(void)
 {
   int ret;

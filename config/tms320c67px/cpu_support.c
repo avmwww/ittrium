@@ -11,7 +11,6 @@ void low_level_init(void)
 {
   int i;
 
-  // Initialize vector table
   for (i = 0; i < INT_VEC_NUM; i++) {
     _int_vector_table[i] = (FP)0;
   }
@@ -24,15 +23,12 @@ void install_handler(FP handler, INHNO vec_no)
   END_CRITICAL_SECTION;
 }
 
-// return no 0 if running
 int timer_hw_enter(void)
 {
   int ret;
 
   BEGIN_CRITICAL_SECTION;
-  //--
   
-  //--
   _system_ticks.st_low++;
   if (TIC_DENO == _system_ticks.st_low) {
     _system_ticks.st_low = 0;
@@ -44,9 +40,7 @@ int timer_hw_enter(void)
     timer_nesting++;
     ret = 0;
   }
-  //Reset timer flag interrupt
   RTIINTFLAG = 0x1;
-  //
   END_CRITICAL_SECTION;
   return ret;
 }

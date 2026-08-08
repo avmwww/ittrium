@@ -3,52 +3,33 @@
 #include "../cpu_generic.c"
 
 
-/**
- *
- */
 struct ivt_t {
   FP  func;
   UW  prio;
 } static int_vector_table[32];
 
+/* Matches dispatch_r: ldmfd {r4-r11,lr}; mov pc,lr */
+extern void dispatch_r(void);
 
-/**
- *
- */
 void make_task_context(TCB *tcb)
 {
-  unsigned short *pstk;
+  UW *pstk;
 
-  pstk = (unsigned short *)((unsigned char *)tcb->stk - 4);//- 3); ADi FIX
-  // Flag register high part, Program counter high part    ISP  USP
-  // IPL = 0, ISP used, Interrupt enabled                  0x40 0xC0
-  *--pstk = (((unsigned long)tcb->task >> 8L)&0x0F00)|0x0040;
-  // PC medium & low byte
-  *--pstk = (unsigned long)tcb->task & 0x0000FFFFL;
-  // FB
-  *--pstk = 0xFBFB;
-  // SB
-  *--pstk = 0x5B5B;
-  // A1
-  *--pstk = 0xA1A1;
-  // A0
-  *--pstk = (unsigned short)(unsigned int)(tcb->exinf);
-  // R3
-  *--pstk = 0x3333;
-  // R2
-  *--pstk = 0x2222;
-  // R1
-  *--pstk = 0x1111;
-  // R0
-  *--pstk = 0x0000;
+  pstk = (UW *)((UW)tcb->stk & ~7UL);
+  *--pstk = (UW)tcb->task; /* LR -> task entry */
+  *--pstk = 0x11111111UL;
+  *--pstk = 0x10101010UL;
+  *--pstk = 0x09090909UL;
+  *--pstk = 0x08080808UL;
+  *--pstk = 0x07070707UL;
+  *--pstk = 0x06060606UL;
+  *--pstk = 0x05050505UL;
+  *--pstk = 0x04040404UL;
 
   tcb->tskctxb.sp = pstk;
+  tcb->tskctxb.pc = (VP)dispatch_r;
 }
 
-/**
- *
- */
-//unsigned short _interrupt_vector;
 void interrupt_handler(INHNO vector)
 {
   if (int_vector_table[vector].func) {
@@ -57,9 +38,6 @@ void interrupt_handler(INHNO vector)
   }
 }
 
-/**
- *
- */
 void _install_handler(FP handler, INHNO vec_no, UB prio)
 {
   if (vec_no < 32) {
@@ -70,9 +48,6 @@ void _install_handler(FP handler, INHNO vec_no, UB prio)
   }
 }
 
-/**
- *
- */
 void _int_init(void)
 {
   int i;
@@ -84,9 +59,6 @@ void _int_init(void)
   }
 }
 
-/**
- *
- */
 void start_hw_timer(void)
 {
   timer_nesting = 0;
@@ -97,16 +69,12 @@ void start_hw_timer(void)
 
   INT_VECTOR0 = IRQ_TABLE_BASE & MASK_INDEX;
 
-  // Configure Timer0
-  T0LOAD =  TIMER_1MS;	// Timer value
+  T0LOAD =  TIMER_1MS;
   T0VALUE = TIMER_1MS;
   T0CLR = 0;
   T0CTRL=0xC8;
 }
 
-/**
- *
- */
 void terminate_hw_timer(void)
 {
   DISABLE_TICKER_INT();
@@ -114,9 +82,6 @@ void terminate_hw_timer(void)
   int_vector_table[TICKER_VEC_NO].prio = 0;
 }
 
-/**
- *
- */
 void low_level_init(void)
 {
   _int_init();

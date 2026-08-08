@@ -155,7 +155,6 @@ restore_context:
         ; SP
         LDW     .D2T2   *+B1(TCB_sp), B15
         NOP      4
-        ; ¬осстанавливаем специальные регистры
         ; FMCR
         LDW     .D2T2   *SP++,B4
         ; FAUCR
@@ -393,7 +392,6 @@ _make_task_context:
         STW     .D2T2   B1,*B1--
         ; The return address IRP
         STW     .D2T2   B2,*B1--
-        ; ќпределяем специальные регистры
         ; Addressing Mode Register (AMR)
         STW     .D2T2   B0,*B1--
         ; Floating-Point Adder Configuration Register (FADCR)
@@ -491,11 +489,8 @@ IVEC_INT_15:
 
         .end
 
-        ; –езервируем место под context
         ADDK    .S2     (4 -_context_len),SP
-        ; ¬озврат из подпрограммы по B3
         STW     .D2T2   B3,*+SP(_B3)
-        ; —охраняем специальные регистры
         ||  MVC         AMR, B0
         STW     .D2T2   B0,*+SP(_AMR)
         ||  MVC         CSR,B0
@@ -510,7 +505,6 @@ IVEC_INT_15:
         STW     .D2T2   B0,*+SP(_FAUCR)
         ||  MVC         FMCR,B0
         STW     .D2T2   B0,*+SP(_FMCR)
-        ; —охраняем регистры
         STW     .D2T1   A0,*+SP(_A0)  ; 
         ||  MV  .L1X    SP,A0                   ; A0 = SP  
         STW     .D2T1   A1,*+SP(_A1)  ; 
@@ -699,7 +693,7 @@ skip_save_context:
     STW     .D2T2   B11,*+SP(_B11)  ;  
 ||  addk           (_IRP),B10       ;         Correct SP for POP of TCB
 ;--------------------------------------------------;
-;   In the TCB is the taskіs stack pointer value   ;
+;   In the TCB is the task's stack pointer value   ;
 ;   Get it                                         ;
 ;--------------------------------------------------;
 ; SP = OSTCBHighRdy->OSTCBStkPtr    
@@ -1152,11 +1146,11 @@ _c6201_Save
 
 _OSIntCtxSw
 ;----------------------------------------;
-;   Get the address of the Taskіs TCB    ;
+;   Get the address of the Task's TCB    ;
 ;   of the task that is going to execute ;
 ;----------------------------------------;
 ;----------------------------;
-;   Adjust the stack pointer for saving in the Current taskіs TCB;
+;   Adjust the stack pointer for saving in the Current task's TCB;
 ;----------------------------;
 
     LDW     .D2T2   *+DP(_OSTCBCur),B0     ; B0 = OSTCBCur
@@ -1230,7 +1224,7 @@ _OSCtxSw_Fast
     STW     .D2T2   B11,*+SP(_B11)  ;  
 ||  addk           (_IRP),B10       ;         Correct SP for POP of TCB
 ;--------------------------------------------------;
-;   In the TCB is the taskіs stack pointer value   ;
+;   In the TCB is the task's stack pointer value   ;
 ;   Get it                                         ;
 ;--------------------------------------------------;
 ; SP = OSTCBHighRdy->OSTCBStkPtr    
@@ -1356,7 +1350,7 @@ _OSCtxSw
 *****************************************************************
 *            PERFORM A CONTEXT SWITCH (From an ISR)
 *                     void OSIntCtxSw(void)
-* The current taskіs environment is already saved by c6201_save
+* The current task's environment is already saved by c6201_save
 * save the current stackpos in the TCB
 *
 *
@@ -1396,7 +1390,7 @@ OSStartHighRdy_1
 ||  mvk      1,b1
     STB     .D2T2   B1,*+DP(_OSRunning)     
 ;--------------------------------------------------;
-;   In the TCB is the taskіs stack pointer value   ;
+;   In the TCB is the task's stack pointer value   ;
 ;   Get it                                         ;
 ; Get the stack pointer of the task to resume
 ;--------------------------------------------------;

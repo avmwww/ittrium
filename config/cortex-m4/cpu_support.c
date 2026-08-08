@@ -38,53 +38,31 @@ void task_idle_c(void *arg)
 void make_task_context(TCB *tcb)
 {
   int i;
-
-  // Task stack pointer initialy pointed to first byte after task stack
   UW *pstk;
 
-  // Align stack pointer
   pstk = (VP)((UW)tcb->stk & ~7UL);
-  // EPSR: xPSR, thumb
-  *--pstk = 0x01000000;
-  // PC, Mask off lower bit in case task is thumb mode
+  /* Exception frame: xPSR, PC, LR, R12, R3-R0; optional FPU; R11-R4, EXC_RETURN */
+  *--pstk = 0x01000000; /* xPSR Thumb */
   *--pstk = (UW)tcb->task | 1;
-  // LR
   *--pstk = (UW)exit_task;
-  // R12
   *--pstk = (UW)0x12121212L;
-  // R3
   *--pstk = (UW)0x03030303L;
-  // R2
   *--pstk = (UW)0x02020202L;
-  // R1
   *--pstk = (UW)0x01010101L;
-  // R0, function argument
   *--pstk = (UW)tcb->exinf;
-  // R11
   *--pstk = (UW)0x11111111L;
-  // R10
   *--pstk = (UW)0x10101010L;
-  // R9
   *--pstk = (UW)0x09090909L;
-  // R8
   *--pstk = (UW)0x08080808L;
-  // R7
   *--pstk = (UW)0x07070707L;
-  // R6
   *--pstk = (UW)0x06060606L;
-  // R5
   *--pstk = (UW)0x05050505L;
-  // R4
   *--pstk = (UW)0x04040404L;
-  // FPU s16-s31
   if (tcb->tskatr & TA_FPU) {
     for (i = 31; i > 15; i--)
       *--pstk = (UW)i;
-
-    // FPSCR
-    *--pstk = 0;
+    *--pstk = 0; /* FPSCR */
   }
-  // LR (EXC_RETURN)
   *--pstk = (UW)EXC_RETURN_THREAD_PSP;
 
   tcb->tskctxb.sp = pstk;

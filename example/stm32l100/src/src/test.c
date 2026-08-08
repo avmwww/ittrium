@@ -1,46 +1,28 @@
 #include <stdio.h>
 #include "ittrium.h"
 
-/* Поправка таймера на сработу с симулятором  */
+/* Scale delays for simulator vs hardware (1 = real time) */
 #define SIMUL_DIV    1
 
-/* Вектор какого-то прерывания: Software #30 */
+/* Soft IRQ vector used by the demo (see install_handler) */
 #define TEST_INT_VEC_NO  2
 
-/**
- * Стек под init_tsk()
- */
 short init_tsk_stack[INIT_TASK_STACK_SIZE];
-
-/**
- * Стек под test_task()
- */
 short test_tsk_stack[TEST_TSK_STACK_SIZE];
 
-
-/**
- * Обработчик прерывания
- */
 void test_handler(void)
 {
-  /* Из прерывания ставим флаг */
   iset_flg (TEST_FLG_ID, 0x1234);
 }
 
-/**
- * Тестовая задача
- */
 void test_tsk(void *exinf)
 {
   FLGPTN flgptn = 1;
 
   for (;;) {
-    /* Ожидание с таймаутом 15 мс */
     if (E_OK == twai_flg(TEST_FLG_ID, flgptn, TWF_ORW, &flgptn, 1000/SIMUL_DIV)) {
-      /* Дождались флага */
       printf("Flag is ready\n");
     } else {
-     /* Ошибка, скорее все таймаут = E_TMO */
       printf("Flag timeout\n");
     }
     HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_12);
@@ -53,11 +35,7 @@ void init_tsk(void *exinf)
   T_CTSK pk_ctsk;
   T_CFLG pk_cflg;
 
-  /* Параметры создаваемого флага:
-     очередь ожидания в FIFO, самоочищающийся флаг,
-     могут ждать несколько процессов */
   pk_cflg.flgatr = TA_TFIFO|TA_CLR|TA_WMUL;
-  /* Начальное значение флага */
   pk_cflg.iflgptn = 0;
   cre_flg(TEST_FLG_ID, &pk_cflg);
 
@@ -68,12 +46,9 @@ void init_tsk(void *exinf)
   pk_ctsk.stksz = TEST_TSK_STACK_SIZE;
   pk_ctsk.stk = test_tsk_stack;
 
-  /* Создаем задачу */
   cre_tsk(TEST_TASK_ID, &pk_ctsk);
-  /* Активируем задачу */
   act_tsk(TEST_TASK_ID);
 
-  /* Устанавливаем обработчик прерывания */
   install_handler(test_handler, TEST_INT_VEC_NO, 1);
   chg_pri(TSK_SELF, LOW_PRIO);
 
@@ -82,9 +57,6 @@ void init_tsk(void *exinf)
   }
 }
 
-/**
- * инициализируем периферию процессора
- */
 static void Error_Handler(void)
 {
 }
@@ -94,12 +66,8 @@ void target_clock_init(void)
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-    /* Configure the main internal regulator output voltage */
     __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
-    /** Initializes the RCC Oscillators according to the specified parameters
-     * in the RCC_OscInitTypeDef structure.
-     */
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
     RCC_OscInitStruct.HSIState = RCC_HSI_ON;
     RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
@@ -112,7 +80,6 @@ void target_clock_init(void)
         Error_Handler();
     }
 
-    /* Initializes the CPU, AHB and APB buses clocks */
     RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
         |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
     RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
@@ -149,4 +116,3 @@ void _low_level_init(void)
     target_clock_init();
     target_gpio_init();
 }
-

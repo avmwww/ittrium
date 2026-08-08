@@ -221,7 +221,6 @@ restore_context:
         ; SP
         LDW     .D2T2   *+B1(TCB_sp), B15
         NOP      4
-        ; ¬осстанавливаем специальные регистры
         ; FMCR
         LDW     .D2T2   *SP++,B4
         ; FAUCR
@@ -591,7 +590,6 @@ _make_task_context:
 		|| MVK  .S2     0x0000,B0
         ; The return address IRP
         STW     .D2T2   B2,*B1--
-        ; ќпределяем специальные регистры
         ; Addressing Mode Register (AMR)
         STW     .D2T2   B0,*B1--
         ; Floating-Point Adder Configuration Register (FADCR)

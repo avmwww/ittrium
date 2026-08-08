@@ -83,16 +83,35 @@ External (expected next to the tree for networked examples):
 
 ## CPU ports
 
-| CPU | Directory | Example |
-|-----|-----------|---------|
-| Cortex-A53 (AArch64 EL1) | `config/cortex-a53` | `example/qemu-a53`, `example/kria-k26` |
-| Cortex-M3 / M4 | `config/cortex-m3`, `cortex-m4` | `example/stm32l100`, `gd32f350` |
-| ARM7 / LPC288x | `config/arm7`, `lpc288x` | — |
-| M16C | `config/m16c62` | — |
-| TMS320 C54x / C55x / C67x | `config/tms320c*` | `example/c55x`, `c54_test` |
+Each CPU port lives under `config/<cpu>/` (`cpu_support.[chS]`, `ittrium.inc`, optional `Makefile.dev`).  
+Board glue (UART, clocks, netdev) stays in `example/<board>/`.
+
+| CPU | Directory | Toolchain | Example | Status |
+|-----|-----------|-----------|---------|--------|
+| Cortex-A53 (AArch64 EL1, no MMU) | `config/cortex-a53` | `aarch64-none-elf-gcc` | `example/qemu-a53`, `kria-k26` | **Primary** — QEMU smoke-tested; Kria links |
+| Cortex-M3 | `config/cortex-m3` | `arm-none-eabi-gcc` | `example/stm32l100` | Board example (needs CMSIS/HAL) |
+| Cortex-M4 (+ optional FPU ctx) | `config/cortex-m4` | `arm-none-eabi-gcc` | `example/gd32f350` | Board example (needs GD32 FW lib) |
+| ARM7 | `config/arm7` | IAR ARM | — | Legacy; context/dispatch cleaned, no board tree |
+| ARM7TDMI | `config/arm7tdmi` | IAR ARM | — | Legacy; task frame aligned with `dispatch.s` |
+| LPC288x | `config/lpc288x` | IAR ARM | — | Legacy; same model as ARM7TDMI |
+| M16C/62 | `config/m16c62` | IAR M16C | — | Legacy; IAR-oriented |
+| TMS320 C54x | `config/tms320c54x` | TI C54x | `example/c54_test` | CCS/simulator |
+| TMS320 C55x | `config/tms320c55x` | TI `cl55` | `example/c55x` | Builds with CCS 4.4.x |
+| TMS320 C6x / C67x+ | `config/tms320c6x`, `tms320c67px` | TI C6000 | — | Legacy DSP ports |
 
 A new CPU means a new `config/` directory plus an `example/`.  
 A new board on an existing CPU is usually only `example/<board>/` (see [Porting](#porting)).
+
+**Port layout (typical):**
+
+```
+config/<cpu>/
+├── cpu_support.h    # types, CTXB, cpu_lock/unlock, dispatch()
+├── cpu_support.c    # make_task_context, IRQ table, tick
+├── cpu_support.S    # context switch / IRQ entry (or .s / .asm)
+├── ittrium.inc      # TCB field offsets for asm
+└── Makefile.dev     # CROSS_COMPILE flags (GNU ports)
+```
 
 ---
 
