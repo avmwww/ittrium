@@ -1,0 +1,10 @@
+##################################################################
+#
+# PWD stays at example/linux-user when using make -C subdirs
+KERNEL_DIR ?= $(PWD)/../..
+KERNEL_DEV := linux-user
+
+CFLAGS += -I. -I../include
+FLAGS += -I. -I../include
+
+include $(KERNEL_DIR)/config/$(KERNEL_DEV)/Makefile.dev

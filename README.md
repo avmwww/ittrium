@@ -57,6 +57,7 @@ ittrium/
 ├── kernel/            # shared kernel (tasks, sem, flg, timer, …)
 ├── config/            # CPU ports
 │   ├── cortex-a53/    # AArch64 EL1, GICv2, CNTP
+│   ├── linux-user/    # host process (ucontext + SIGALRM)
 │   ├── cortex-m3/ m4/
 │   ├── arm7/ …
 │   └── tms320c…/
@@ -70,6 +71,7 @@ ittrium/
 │   └── lwip/          # CFG_USE_LWIP (clone upstream here)
 ├── example/           # boards / demos
 │   ├── qemu-a53/      # QEMU virt — primary A53 bring-up
+│   ├── linux-user/    # host gcc smoke (no QEMU)
 │   ├── kria-k26/      # Kria K26 SOM (UART1 + GEM3)
 │   ├── stm32l100/ gd32f350/ c55x/ …
 └── README.md
@@ -85,6 +87,7 @@ Board glue (UART, clocks, netdev) stays in `example/<board>/`.
 | CPU | Directory | Toolchain | Example | Status |
 |-----|-----------|-----------|---------|--------|
 | Cortex-A53 (AArch64 EL1, no MMU) | `config/cortex-a53` | `aarch64-none-elf-gcc` | `example/qemu-a53`, `kria-k26` | **Primary** — QEMU smoke-tested; Kria links |
+| Linux userspace | `config/linux-user` | host `gcc` | `example/linux-user` | Host smoke (ucontext + SIGALRM; no QEMU) |
 | Cortex-M3 | `config/cortex-m3` | `arm-none-eabi-gcc` | `example/stm32l100` | Board example (needs CMSIS/HAL) |
 | Cortex-M4 (+ optional FPU ctx) | `config/cortex-m4` | `arm-none-eabi-gcc` | `example/gd32f350` | Board example (needs GD32 FW lib) |
 | ARM7 | `config/arm7` | IAR ARM | — | Legacy; context/dispatch cleaned, no board tree |
@@ -127,6 +130,15 @@ For **qemu-a53** also:
 
 - `qemu-system-aarch64`  
 - **lwIP** under `third_party/lwip` (when `CFG_USE_LWIP=1`)
+
+For **linux-user** (native `gcc`, no QEMU):
+
+```bash
+cd example/linux-user && make && make run
+# Ctrl+C to stop
+```
+
+Details: [`example/linux-user/README.md`](example/linux-user/README.md).
 
 ---
 

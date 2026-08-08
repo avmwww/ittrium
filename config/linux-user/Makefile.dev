@@ -1,0 +1,71 @@
+#
+# Linux userspace host port (native gcc)
+#
+ASM = as
+CC = gcc
+RM = rm -rf
+LNK = gcc
+AR = ar
+SIZE = size
+CP = cp -f
+MV = mv -p
+CAT = cat
+DD = dd
+MKDIR = mkdir -p
+#
+KERNEL_DEV = linux-user
+#
+OBJDIR = obj
+LISTDIR = list
+#
+
+ifeq ($(DEBUG), 1)
+	CFLAGS_OPT := -g -O0
+else
+	CFLAGS_OPT := -O2 -g
+endif
+
+#
+FLAGS_COMMON := \
+	-D_GNU_SOURCE \
+	-I$(KERNEL_DIR)/include \
+	-I$(KERNEL_DIR)/config/$(KERNEL_DEV) \
+
+CFLAGS += $(FLAGS_COMMON) $(CFLAGS_OPT)
+CFLAGS += -Wall -Wextra -Wno-unused-parameter
+CFLAGS += -fno-strict-aliasing -MMD -MP
+
+FLAGS += $(FLAGS_COMMON)
+
+LDFLAGS += -Wl,-Map="$(TARGET).map"
+LDFLAGS += $(FLAGS_COMMON)
+
+OBJS = $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
+OBJS += $(patsubst %.S,%_.o,$(filter %.S,$(SRCS)))
+OBJS += $(patsubst %.s,%_.o,$(filter %.s,$(SRCS)))
+LIST = $(patsubst %.c,%.lst,$(filter %.c,$(SRCS)))
+
+vpath %.o $(OBJDIR)
+vpath %.lst $(LISTDIR)
+
+all: sub
+
+$(OBJDIR):
+	$(MKDIR) $(OBJDIR)
+
+$(LISTDIR):
+	$(MKDIR) $(LISTDIR)
+
+%_.o: %.S
+	$(CC) $(CFLAGS) -c $< -o ../$(OBJDIR)/$@
+
+%_.o: %.s
+	$(CC) $(CFLAGS) -c $< -o ../$(OBJDIR)/$@
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o ../$(OBJDIR)/$(notdir $@)
+
+clean:
+	$(RM) $(OBJDIR) $(LISTDIR) $(TARGET) $(TARGET).map
+
+.PHONY: all clean sub
