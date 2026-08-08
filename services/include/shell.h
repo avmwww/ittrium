@@ -33,7 +33,7 @@ int shell_exec_line(const char *line);
 /* Run argv[0] as builtin; return status (0 ok, non-zero fail). */
 int shell_run_argv(int argc, char **argv);
 
-/* Tab-complete command name into buf[0..*len). Returns match count. */
+/* Tab-complete command (1st word) or path (later). Returns match count. */
 int shell_complete_cmds(char *buf, int buflen, int *len, int *pos, int list);
 
 /* Session variables */

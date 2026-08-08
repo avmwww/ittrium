@@ -239,16 +239,25 @@ static int gen_interrupts(char *buf, size_t cap)
 {
   int n = 0;
   unsigned v;
+  const int w_vec = 3;
+  const int w_name = 10;
+  const int w_count = 10;
 
-  append_str(buf, cap, &n, "vec name count\n");
+  append_field(buf, cap, &n, "vec", w_vec, 1);
+  append_str(buf, cap, &n, " ");
+  append_field(buf, cap, &n, "name", w_name, 0);
+  append_str(buf, cap, &n, " ");
+  append_field(buf, cap, &n, "count", w_count, 1);
+  append_str(buf, cap, &n, "\n");
+
   for (v = 0; v < TELEMETRY_IRQ_MAX; v++) {
     if (irq_count[v] == 0)
       continue;
-    append_uint(buf, cap, &n, v);
+    append_uint_field(buf, cap, &n, v, w_vec);
     append_str(buf, cap, &n, " ");
-    append_str(buf, cap, &n, irq_vec_name(v));
+    append_field(buf, cap, &n, irq_vec_name(v), w_name, 0);
     append_str(buf, cap, &n, " ");
-    append_uint(buf, cap, &n, (unsigned)irq_count[v]);
+    append_uint_field(buf, cap, &n, (unsigned)irq_count[v], w_count);
     append_str(buf, cap, &n, "\n");
     if ((size_t)n + 32 >= cap) break;
   }

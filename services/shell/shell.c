@@ -469,20 +469,259 @@ int shell_run_argv(int argc, char **argv)
   return -1;
 }
 
-int shell_complete_cmds(char *buf, int buflen, int *len, int *pos, int list)
+static int shell_is_blank(char c)
+{
+  return c == ' ' || c == '\t';
+}
+
+static void shell_token_at(const char *buf, int len, int pos, int *start, int *end)
+{
+  if (pos < 0) pos = 0;
+  if (pos > len) pos = len;
+  *start = pos;
+  while (*start > 0 && !shell_is_blank(buf[*start - 1]))
+    (*start)--;
+  *end = pos;
+  while (*end < len && !shell_is_blank(buf[*end]))
+    (*end)++;
+}
+
+static int shell_token_is_first(const char *buf, int start)
+{
+  int i;
+  for (i = 0; i < start; i++) {
+    if (!shell_is_blank(buf[i]))
+      return 0;
+  }
+  return 1;
+}
+
+static int shell_replace_token(char *buf, int buflen, int *len, int *pos,
+                               int start, int end, const char *repl)
+{
+  int rlen = (int)strlen(repl);
+  int old = end - start;
+  int nlen = *len - old + rlen;
+
+  if (nlen < 0 || nlen >= buflen)
+    return -1;
+  memmove(buf + start + rlen, buf + end, (size_t)(*len - end));
+  memcpy(buf + start, repl, (size_t)rlen);
+  *len = nlen;
+  buf[*len] = '\0';
+  *pos = start + rlen;
+  return 0;
+}
+
+static void shell_match_update(const char *name, char *best, int bestsz,
+                               char *common, int *common_len, int *matches)
+{
+  int nlen = (int)strlen(name);
+  int j;
+
+  (*matches)++;
+  if (*matches == 1) {
+    if (nlen >= bestsz) nlen = bestsz - 1;
+    memcpy(best, name, (size_t)nlen);
+    best[nlen] = '\0';
+    memcpy(common, best, (size_t)nlen + 1);
+    *common_len = nlen;
+    return;
+  }
+  j = 0;
+  while (j < *common_len && common[j] && name[j] && common[j] == name[j])
+    j++;
+  *common_len = j;
+  common[j] = '\0';
+}
+
+static int shell_mount_child(const char *dir, const char *mnt,
+                             char *out, int outsz)
+{
+  int dlen;
+  const char *p;
+  int i;
+
+  if (!dir || !mnt || mnt[0] != '/' || outsz < 2)
+    return 0;
+  if (strcmp(dir, "/") == 0) {
+    if (mnt[1] == '\0')
+      return 0;
+    p = mnt + 1;
+    for (i = 0; p[i]; i++) {
+      if (p[i] == '/')
+        return 0;
+    }
+    if (i >= outsz) i = outsz - 1;
+    memcpy(out, p, (size_t)i);
+    out[i] = '\0';
+    return 1;
+  }
+  dlen = (int)strlen(dir);
+  if (strncmp(mnt, dir, (size_t)dlen) != 0 || mnt[dlen] != '/')
+    return 0;
+  p = mnt + dlen + 1;
+  if (!*p)
+    return 0;
+  for (i = 0; p[i]; i++) {
+    if (p[i] == '/')
+      return 0;
+  }
+  if (i >= outsz) i = outsz - 1;
+  memcpy(out, p, (size_t)i);
+  out[i] = '\0';
+  return 1;
+}
+
+static int shell_complete_path(char *buf, int buflen, int *len, int *pos,
+                               int start, int end, int list)
+{
+  char path[VFS_PATH_MAX];
+  char dir[VFS_PATH_MAX];
+  char pfx[VFS_NAME_MAX];
+  char name[VFS_NAME_MAX];
+  char best[VFS_NAME_MAX];
+  char common[VFS_NAME_MAX];
+  char out[VFS_PATH_MAX];
+  int plen, last_slash = -1, i, matches = 0, common_len = -1;
+  int pfxlen, idx, rc, ol, nm;
+
+  plen = end - start;
+  if (plen < 0) plen = 0;
+  if (plen >= (int)sizeof(path)) plen = (int)sizeof(path) - 1;
+  memcpy(path, buf + start, (size_t)plen);
+  path[plen] = '\0';
+
+  for (i = 0; path[i]; i++) {
+    if (path[i] == '/')
+      last_slash = i;
+  }
+
+  if (last_slash < 0) {
+    dir[0] = '/';
+    dir[1] = '\0';
+    if (plen >= (int)sizeof(pfx)) plen = (int)sizeof(pfx) - 1;
+    memcpy(pfx, path, (size_t)plen);
+    pfx[plen] = '\0';
+  } else if (last_slash == 0) {
+    dir[0] = '/';
+    dir[1] = '\0';
+    plen = (int)strlen(path + 1);
+    if (plen >= (int)sizeof(pfx)) plen = (int)sizeof(pfx) - 1;
+    memcpy(pfx, path + 1, (size_t)plen);
+    pfx[plen] = '\0';
+  } else {
+    if (last_slash >= (int)sizeof(dir))
+      return 0;
+    memcpy(dir, path, (size_t)last_slash);
+    dir[last_slash] = '\0';
+    plen = (int)strlen(path + last_slash + 1);
+    if (plen >= (int)sizeof(pfx)) plen = (int)sizeof(pfx) - 1;
+    memcpy(pfx, path + last_slash + 1, (size_t)plen);
+    pfx[plen] = '\0';
+  }
+  pfxlen = (int)strlen(pfx);
+
+  idx = 0;
+  while ((rc = vfs_listdir(dir, name, sizeof(name), &idx)) == 0) {
+    if (strncmp(name, pfx, (size_t)pfxlen) != 0)
+      continue;
+    shell_match_update(name, best, (int)sizeof(best),
+                       common, &common_len, &matches);
+  }
+  nm = vfs_mount_count();
+  for (i = 0; i < nm; i++) {
+    const char *mnt = vfs_mount_path(i);
+    if (!mnt || !shell_mount_child(dir, mnt, name, (int)sizeof(name)))
+      continue;
+    if (strncmp(name, pfx, (size_t)pfxlen) != 0)
+      continue;
+    shell_match_update(name, best, (int)sizeof(best),
+                       common, &common_len, &matches);
+  }
+  if (matches == 0)
+    return 0;
+
+  if (matches == 1) {
+    struct vfs_stat st;
+
+    if (strcmp(dir, "/") == 0) {
+      out[0] = '/';
+      ol = 1;
+    } else {
+      ol = (int)strlen(dir);
+      if (ol + 1 >= (int)sizeof(out))
+        return matches;
+      memcpy(out, dir, (size_t)ol);
+      out[ol++] = '/';
+    }
+    plen = (int)strlen(best);
+    if (ol + plen >= (int)sizeof(out))
+      return matches;
+    memcpy(out + ol, best, (size_t)plen);
+    ol += plen;
+    out[ol] = '\0';
+    if (vfs_stat(out, &st) == 0 && st.type == VFS_TYPE_DIR &&
+        ol + 1 < (int)sizeof(out) && out[ol - 1] != '/') {
+      out[ol++] = '/';
+      out[ol] = '\0';
+    }
+    shell_replace_token(buf, buflen, len, pos, start, end, out);
+    return 1;
+  }
+
+  if (common_len > pfxlen) {
+    if (strcmp(dir, "/") == 0) {
+      out[0] = '/';
+      ol = 1;
+    } else {
+      ol = (int)strlen(dir);
+      if (ol + 1 >= (int)sizeof(out))
+        return matches;
+      memcpy(out, dir, (size_t)ol);
+      out[ol++] = '/';
+    }
+    if (ol + common_len >= (int)sizeof(out))
+      return matches;
+    memcpy(out + ol, common, (size_t)common_len);
+    out[ol + common_len] = '\0';
+    shell_replace_token(buf, buflen, len, pos, start, end, out);
+  }
+
+  if (list) {
+    shell_puts("\r\n");
+    idx = 0;
+    while ((rc = vfs_listdir(dir, name, sizeof(name), &idx)) == 0) {
+      if (strncmp(name, pfx, (size_t)pfxlen) != 0)
+        continue;
+      shell_puts(name);
+      shell_puts("\r\n");
+    }
+    for (i = 0; i < nm; i++) {
+      const char *mnt = vfs_mount_path(i);
+      if (!mnt || !shell_mount_child(dir, mnt, name, (int)sizeof(name)))
+        continue;
+      if (strncmp(name, pfx, (size_t)pfxlen) != 0)
+        continue;
+      shell_puts(name);
+      shell_puts("\r\n");
+    }
+  }
+  return matches;
+}
+
+static int shell_complete_cmdword(char *buf, int buflen, int *len, int *pos,
+                                  int start, int end, int list)
 {
   char prefix[SHELL_LINE_MAX];
-  int plen = 0, i, matches = 0;
+  char repl[SHELL_LINE_MAX];
+  int plen = end - start, i, matches = 0;
   const char *first = 0;
   int common_len = -1;
 
-  if (!buf || !len || !pos || *len < 0 || *len >= buflen) return 0;
-  /* only complete first word */
-  while (plen < *len && buf[plen] != ' ' && buf[plen] != '\t')
-    plen++;
-  if (plen < *len) return 0; /* already has args */
+  if (plen < 0) plen = 0;
   if (plen >= (int)sizeof(prefix)) plen = (int)sizeof(prefix) - 1;
-  memcpy(prefix, buf, (size_t)plen);
+  memcpy(prefix, buf + start, (size_t)plen);
   prefix[plen] = '\0';
 
   for (i = 0; i < ncmds; i++) {
@@ -500,25 +739,24 @@ int shell_complete_cmds(char *buf, int buflen, int *len, int *pos, int list)
       common_len = j;
     }
   }
-
-  if (matches == 0) return 0;
+  if (matches == 0)
+    return 0;
 
   if (matches == 1 && first) {
     int n = (int)strlen(first);
-    if (n >= buflen) n = buflen - 1;
-    memcpy(buf, first, (size_t)n);
-    buf[n] = '\0';
-    *len = n;
-    *pos = n;
+    if (n + 1 >= (int)sizeof(repl)) n = (int)sizeof(repl) - 2;
+    memcpy(repl, first, (size_t)n);
+    repl[n++] = ' ';
+    repl[n] = '\0';
+    shell_replace_token(buf, buflen, len, pos, start, end, repl);
     return 1;
   }
 
   if (common_len > plen && first) {
-    if (common_len >= buflen) common_len = buflen - 1;
-    memcpy(buf, first, (size_t)common_len);
-    buf[common_len] = '\0';
-    *len = common_len;
-    *pos = common_len;
+    if (common_len >= (int)sizeof(repl)) common_len = (int)sizeof(repl) - 1;
+    memcpy(repl, first, (size_t)common_len);
+    repl[common_len] = '\0';
+    shell_replace_token(buf, buflen, len, pos, start, end, repl);
   }
 
   if (list) {
@@ -531,6 +769,18 @@ int shell_complete_cmds(char *buf, int buflen, int *len, int *pos, int list)
     }
   }
   return matches;
+}
+
+int shell_complete_cmds(char *buf, int buflen, int *len, int *pos, int list)
+{
+  int start, end;
+
+  if (!buf || !len || !pos || *len < 0 || *len >= buflen)
+    return 0;
+  shell_token_at(buf, *len, *pos, &start, &end);
+  if (shell_token_is_first(buf, start))
+    return shell_complete_cmdword(buf, buflen, len, pos, start, end, list);
+  return shell_complete_path(buf, buflen, len, pos, start, end, list);
 }
 
 void shell_task(void *exinf)
