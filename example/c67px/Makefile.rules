@@ -8,10 +8,10 @@ MKDIR = mkdir -p
 KERNEL_DIR ?= $(PWD)/../..
 KERNEL_DEV = tms320c67px
 C6X_CGTOOLS ?= $(firstword \
-  $(wildcard $(HOME)/ti/ccs_avm/ti-cgt-c6000_8.1.2) \
-  $(wildcard $(HOME)/ti/ccsv7/ti-cgt-c6000_8.1.2) \
-  $(wildcard /home/avm/ti/ccs_avm/ti-cgt-c6000_8.1.2) \
-  $(wildcard /home/avm/ti/ccsv7/ti-cgt-c6000_8.1.2))
+  $(wildcard $(HOME)/ti/ti-cgt-c6000_*) \
+  $(wildcard $(HOME)/ti/*/ti-cgt-c6000_*) \
+  $(wildcard /opt/ti/ti-cgt-c6000_*) \
+  $(wildcard /opt/ti/*/ti-cgt-c6000_*))
 ifneq ($(C6X_CGTOOLS),)
 export PATH := $(C6X_CGTOOLS)/bin:$(PATH)
 CG6_DIR := $(C6X_CGTOOLS)

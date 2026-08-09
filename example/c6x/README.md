@@ -5,7 +5,7 @@ Minimal µITRON smoke for `config/tms320c6x` (tasks + eventflag).
 ## Build
 
 ```bash
-# export C6X_CGTOOLS=$HOME/ti/ccs_avm/ti-cgt-c6000_8.1.2   # if needed
+# export C6X_CGTOOLS=/path/to/ti-cgt-c6000_<ver>   # if cl6x is not on PATH
 cd example/c6x
 make clean && make
 ```

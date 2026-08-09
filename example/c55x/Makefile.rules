@@ -14,9 +14,10 @@ KERNEL_DIR ?= $(PWD)/../..
 KERNEL_DEV = tms320c55x
 # TI C55x codegen: C55X_CGTOOLS, else common installs, else cl55 on PATH
 C55X_CGTOOLS ?= $(firstword \
-  $(wildcard $(HOME)/ti/cc55_cgt/c5500_4.4.1) \
-  $(wildcard /home/avm/ti/cc55_cgt/c5500_4.4.1) \
-  $(wildcard /opt/ti/cc55_cgt/c5500_4.4.1))
+  $(wildcard $(HOME)/ti/cc55_cgt/c5500_*) \
+  $(wildcard $(HOME)/ti/*/c5500_*) \
+  $(wildcard /opt/ti/cc55_cgt/c5500_*) \
+  $(wildcard /opt/ti/*/c5500_*))
 ifneq ($(C55X_CGTOOLS),)
 export PATH := $(C55X_CGTOOLS)/bin:$(PATH)
 CG55_DIR := $(C55X_CGTOOLS)

@@ -8,7 +8,7 @@ Typical target: CCS C5500 toolchain (e.g. `c5500_4.4.1`).
 
 ```bash
 # optional if tools are not on PATH:
-# export C55X_CGTOOLS=$HOME/ti/cc55_cgt/c5500_4.4.1
+# export C55X_CGTOOLS=/path/to/c5500_<ver>
 cd example/c55x
 make clean
 make
