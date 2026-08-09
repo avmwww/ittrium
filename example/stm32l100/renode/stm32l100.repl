@@ -152,9 +152,13 @@ sysbus:
         Tag <0x40023800 4> "RCC_CR" 0x03030303
         // SW/SWS = HSI
         Tag <0x40023808 4> "RCC_CFGR" 0x0
-        // USART1EN | IOPBEN | IOPAEN
-        Tag <0x40023824 4> "RCC_APB2ENR" 0x4005
         Tag <0x4002381C 4> "RCC_AHBENR" 0x7
+        // USART1EN | IOPBEN | IOPAEN
+        Tag <0x40023820 4> "RCC_APB2ENR" 0x4005
+        Tag <0x40023824 4> "RCC_APB1ENR" 0x0
+        SilenceRange <0x40023800 0x40>
+        // USART CR3
+        SilenceRange <0x40013814 4>
 
 rccCsr: Python.PythonPeripheral @ sysbus 0x40023834
     size: 0x4

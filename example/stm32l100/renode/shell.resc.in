@@ -2,5 +2,6 @@ using sysbus
 mach create "stm32l100"
 machine LoadPlatformDescription @PLATFORM@
 sysbus LoadELF @ELF@
+emulation CreateServerSocketTerminal @PORT@ "uart" false
+connector Connect sysbus.usart1 uart
 start
-uart_connect sysbus.usart1

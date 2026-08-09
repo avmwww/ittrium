@@ -38,14 +38,11 @@ cd example/stm32l100
 make run
 ```
 
-USART1 is on this terminal (`--console` + `uart_connect`), same idea as `qemu -nographic`.
-
-- **Ctrl+C** — stop Renode
-- **ESC** — detach UART → Renode monitor, then `quit`
+USART1 is attached to this terminal via `socat` (same idea as `qemu -nographic`). **Ctrl+C** stops Renode.
 
 If a leftover process remains: `make stop`.
 
-Override: `make run RENODE=/path/to/renode`.
+Override: `make run RENODE=/path/to/renode UART_PORT=3456`.
 
 ## Automated smoke
 
