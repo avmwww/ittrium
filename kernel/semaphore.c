@@ -98,7 +98,7 @@ static ER __wai_sem(ID semid, TMO tmout)
 {
   SEMCB   *semcb;
 
-  if (semid < TMIN_SEMID || semid > TMAX_SEMID)
+  if (semid < TMIN_SEMID || semid > (TMAX_SEMID + TRSV_SEMID))
     return E_ID;
   
   semcb = get_semcb_by_id(semid);
@@ -143,7 +143,7 @@ static ER _sig_sem(ID semid)
   SEMCB   *semcb;
   ER ercd = E_OK;
   
-  if (semid < TMIN_SEMID || semid > TMAX_SEMID)
+  if (semid < TMIN_SEMID || semid > (TMAX_SEMID + TRSV_SEMID))
     return E_ID;
   
   semcb = get_semcb_by_id(semid);
@@ -174,6 +174,54 @@ ER sig_sem(ID semid)
 ER isig_sem(ID semid)
 {
   return _sig_sem(semid);
+}
+
+ER del_sem(ID semid)
+{
+  SEMCB *semcb;
+  ER ercd;
+
+  if (semid < TMIN_SEMID || semid > (TMAX_SEMID + TRSV_SEMID))
+    return E_ID;
+
+  BEGIN_CRITICAL_SECTION;
+  semcb = get_semcb_by_id(semid);
+  if (TTS_NOEXS == semcb->obj.state) {
+    ercd = E_NOEXS;
+  } else {
+    wait_delete(&(semcb->obj.waitq));
+    semcb->obj.state = TTS_NOEXS;
+    semcb->semcnt = 0;
+    kqueue_insert(&(semcb->obj.waitq), &free_semcb);
+    ercd = E_OK;
+  }
+  END_CRITICAL_SECTION;
+
+  if (E_OK == ercd)
+    dispatch();
+  return ercd;
+}
+
+ER ref_sem(ID semid, T_RSEM *pk_rsem)
+{
+  SEMCB *semcb;
+  ER ercd;
+
+  if (semid < TMIN_SEMID || semid > (TMAX_SEMID + TRSV_SEMID))
+    return E_ID;
+
+  BEGIN_CRITICAL_SECTION;
+  semcb = get_semcb_by_id(semid);
+  if (TTS_NOEXS == semcb->obj.state) {
+    ercd = E_NOEXS;
+  } else {
+    pk_rsem->wtskid = wait_tskid(&(semcb->obj.waitq));
+    pk_rsem->semcnt = (UINT)semcb->semcnt;
+    ercd = E_OK;
+  }
+  END_CRITICAL_SECTION;
+
+  return ercd;
 }
 
 #endif // USE_SEMAPHORE

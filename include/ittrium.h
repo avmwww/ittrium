@@ -200,7 +200,10 @@ typedef struct t_rsem {
 
 #ifdef TMAX_MBXID
   #define USE_MAILBOX
-  #define TNUM_MBXID           (TMAX_MBXID - TMIN_MBXID + 1)
+  #ifndef TRSV_MBXID
+   #define TRSV_MBXID          0
+  #endif
+  #define TNUM_MBXID           (TMAX_MBXID - TMIN_MBXID + 1 + TRSV_MBXID)
 #endif // TMAX_MBXID
 
 #ifdef TMAX_SEMID
@@ -216,7 +219,10 @@ typedef struct t_rsem {
 
 #ifdef TMAX_FLGID
   #define USE_EVENTFLAG
-  #define TNUM_FLGID           (TMAX_FLGID - TMIN_FLGID + 1)
+  #ifndef TRSV_FLGID
+   #define TRSV_FLGID          0
+  #endif
+  #define TNUM_FLGID           (TMAX_FLGID - TMIN_FLGID + 1 + TRSV_FLGID)
 #endif // TMAX_FLGID
 
 #ifndef TMAX_TSKID

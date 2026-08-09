@@ -88,6 +88,7 @@ void task_make_dormant(TCB *tcb)
    tcb->tskpri = tcb->itskpri;
    tcb->wupcnt = 0;
    tcb->suscnt = 0;
+   tcb->tskwait = 0;
 #ifdef USE_MAILBOX
    tcb->tmq_head = (T_MSG *) 0;
 #endif /* USE_MAILBOX */

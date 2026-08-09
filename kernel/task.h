@@ -48,6 +48,7 @@ struct task_control_block {
   OBJCB     *wait_obj;
   WAITINFO   waitinfo;
   ER       ercd;
+  UINT    tskwait;
   INT     wupcnt;
   INT     suscnt;
 #ifdef USE_MAILBOX

@@ -26,12 +26,6 @@ uint64_t idle_stack[IDLE_TSK_STACK_SIZE / sizeof(uint64_t)];
 
 extern void vectors_start(void);
 
-static void exit_task(void)
-{
-	for (;;)
-		cpu_wait();
-}
-
 void make_task_context(TCB *tcb)
 {
 	UD *pstk;
@@ -44,7 +38,7 @@ void make_task_context(TCB *tcb)
 		pstk[i] = 0;
 
 	pstk[0] = (UD)(uintptr_t)tcb->exinf; /* x0 */
-	pstk[CTX_OFF_X30 / 8] = (UD)(uintptr_t)exit_task;
+	pstk[CTX_OFF_X30 / 8] = (UD)(uintptr_t)ext_tsk;
 	pstk[CTX_OFF_SPSR / 8] = SPSR_EL1H;
 	pstk[CTX_OFF_ELR / 8] = (UD)(uintptr_t)tcb->task;
 

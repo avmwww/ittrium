@@ -159,10 +159,7 @@ ER del_tsk(ID tskid)
   return ercd;
 }
 
-/**
- *
- */
-ER act_tsk(ID tskid)
+static ER _act_tsk(ID tskid)
 {
   TCB    *tcb;
   STAT  state;
@@ -196,8 +193,22 @@ ER act_tsk(ID tskid)
   } while (0);
   END_CRITICAL_SECTION;
 
-  if (E_OK == ercd) dispatch();
   return ercd;
+}
+
+ER act_tsk(ID tskid)
+{
+  ER ercd;
+
+  ercd = _act_tsk(tskid);
+  if (E_OK == ercd)
+    dispatch();
+  return ercd;
+}
+
+ER iact_tsk(ID tskid)
+{
+  return _act_tsk(tskid);
 }
 
 /**
@@ -234,23 +245,38 @@ ER chg_pri(ID tskid, PRI tskpri)
 // E_ILUSE Illegal service call use (priority ceiling violation)
 }
 
-/*
- *
- */
-#ifdef ittrium_ext_tsk
+ER rot_rdq(PRI tskpri)
+{
+  if (TPRI_SELF == tskpri) {
+    BEGIN_CRITICAL_SECTION;
+    rdyq_rotate_current();
+    END_CRITICAL_SECTION;
+  } else {
+    if (tskpri < TMIN_TPRI || tskpri > TMAX_TPRI)
+      return E_PAR;
+    BEGIN_CRITICAL_SECTION;
+    rdyq_rotate_at(pri_to_index(tskpri));
+    END_CRITICAL_SECTION;
+  }
+  dispatch();
+  return E_OK;
+}
+
 void ext_tsk(void)
 {
+  TCB *tcb;
+
   BEGIN_CRITICAL_SECTION;
-  task_make_unready(runtsk);
-  task_make_dormant(runtsk);
-  if (runtsk->actcnt) {
-    runtsk->actcnt -= 1;
-    task_make_ready(runtsk);
-    runtsk = (TCB *)0;
+  tcb = runtsk;
+  task_make_unready(tcb);
+  task_make_dormant(tcb);
+  if (tcb->actcnt) {
+    tcb->actcnt -= 1;
+    make_task_context(tcb);
+    task_make_ready(tcb);
   }
+  runtsk = (TCB *)0;
   END_CRITICAL_SECTION;
   dispatch();
 }
-
-#endif // ittrium_ext_tsk
 //******************************************************************************

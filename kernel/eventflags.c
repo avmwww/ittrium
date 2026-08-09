@@ -60,20 +60,16 @@ void clear_flgptn(FLGCB *flgcb)
 }
 /*******************************************************************************
  *******************************************************************************/
-ER cre_flg(ID flgid, T_CFLG *pk_cflg)
+static ER _cre_flg(ID flgid, T_CFLG *pk_cflg)
 {
   FLGCB *flgcb;
   ER ercd;
    
-  if (flgid < TMIN_FLGID || flgid > TMAX_FLGID)
-    return E_ID;
-
   if (pk_cflg->flgatr !=
       (pk_cflg->flgatr & ((TA_TFIFO|TA_TPRI) | (TA_WSGL|TA_WMUL) |TA_CLR)))
     return E_RSATR;
    
   flgcb = get_flgcb_by_id(flgid);
-   
 
   BEGIN_CRITICAL_SECTION;
   if (TTS_NOEXS != flgcb->obj.state)
@@ -89,6 +85,35 @@ ER cre_flg(ID flgid, T_CFLG *pk_cflg)
    
   return ercd;
 }
+
+ER cre_flg(ID flgid, T_CFLG *pk_cflg)
+{
+  if (flgid < TMIN_FLGID || flgid > (TMAX_FLGID + TRSV_FLGID))
+    return E_ID;
+
+  return _cre_flg(flgid, pk_cflg);
+}
+
+ER_ID acre_flg(T_CFLG *pk_cflg)
+{
+  ID i;
+  FLGCB *flgcb;
+  ER err;
+
+  if (TRSV_FLGID == 0)
+    return E_NOID;
+
+  for (i = TMAX_FLGID + 1; i <= TMAX_FLGID + TRSV_FLGID; i++) {
+    flgcb = get_flgcb_by_id(i);
+    if (TTS_NOEXS == flgcb->obj.state) {
+      err = _cre_flg(i, pk_cflg);
+      if (err != E_OK)
+        return (ER_ID)err;
+      return (ER_ID)i;
+    }
+  }
+  return E_NOID;
+}
 //==============================================================================
 ER _set_flg(ID flgid, FLGPTN setptn)
 {
@@ -98,7 +123,7 @@ ER _set_flg(ID flgid, FLGPTN setptn)
   MODE wfmode;
   ER err;
   
-  if (flgid < TMIN_FLGID || flgid > TMAX_FLGID)
+  if (flgid < TMIN_FLGID || flgid > (TMAX_FLGID + TRSV_FLGID))
     return E_ID;
   
   BEGIN_CRITICAL_SECTION;
@@ -144,7 +169,7 @@ ER clr_flg(ID flgid, FLGPTN clrptn)
 {
   FLGCB *flgcb;
   
-  if (flgid < TMIN_FLGID || flgid > TMAX_FLGID)
+  if (flgid < TMIN_FLGID || flgid > (TMAX_FLGID + TRSV_FLGID))
     return E_ID;
   
   flgcb = get_flgcb_by_id(flgid);
@@ -163,7 +188,7 @@ static ER __wai_flg(ID flgid, FLGPTN waiptn, MODE wfmode,
 {
   FLGCB *flgcb;
   
-  if (flgid < TMIN_FLGID || flgid > TMAX_FLGID)
+  if (flgid < TMIN_FLGID || flgid > (TMAX_FLGID + TRSV_FLGID))
     return E_ID;
   
   if( ((wfmode!= TWF_ANDW)&&(wfmode!= TWF_ORW) ) || (0 == waiptn))
@@ -220,7 +245,7 @@ ER ref_flg(ID flgid, T_RFLG *pk_rflg)
   FLGCB *flgcb;
   ER err;
 
-  if (flgid < TMIN_FLGID || flgid > TMAX_FLGID)
+  if (flgid < TMIN_FLGID || flgid > (TMAX_FLGID + TRSV_FLGID))
     return E_ID;
   
   flgcb = get_flgcb_by_id(flgid);
@@ -229,13 +254,38 @@ ER ref_flg(ID flgid, T_RFLG *pk_rflg)
   if (TTS_NOEXS == flgcb->obj.state) {
     err = E_NOEXS;
   } else {
-    pk_rflg->wtskid = flgcb->obj.objid;
+    pk_rflg->wtskid = wait_tskid(&(flgcb->obj.waitq));
     pk_rflg->flgptn = flgcb->flgptn;
     err = E_OK;
   }
   END_CRITICAL_SECTION;
 
   return err;
+}
+
+ER del_flg(ID flgid)
+{
+  FLGCB *flgcb;
+  ER ercd;
+
+  if (flgid < TMIN_FLGID || flgid > (TMAX_FLGID + TRSV_FLGID))
+    return E_ID;
+
+  BEGIN_CRITICAL_SECTION;
+  flgcb = get_flgcb_by_id(flgid);
+  if (TTS_NOEXS == flgcb->obj.state) {
+    ercd = E_NOEXS;
+  } else {
+    wait_delete(&(flgcb->obj.waitq));
+    flgcb->obj.state = TTS_NOEXS;
+    flgcb->flgptn = 0;
+    ercd = E_OK;
+  }
+  END_CRITICAL_SECTION;
+
+  if (E_OK == ercd)
+    dispatch();
+  return ercd;
 }
 
 #endif // USE_EVENTFLAG

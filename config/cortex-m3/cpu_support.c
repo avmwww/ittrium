@@ -30,12 +30,6 @@ const char *irq_vec_name(unsigned vec)
 	}
 }
 
-static void exit_task(void)
-{
-    runtsk = (UW)0;
-    for (;;);
-}
-
 void task_idle_c(void *arg)
 {
     for (;;) {
@@ -54,7 +48,7 @@ void make_task_context(TCB *tcb)
   /* Exception frame: xPSR, PC, LR, R12, R3-R0; then software-saved R11-R4, EXC_RETURN */
   *--pstk = 0x01000000; /* xPSR Thumb */
   *--pstk = (UW)tcb->task | 1;
-  *--pstk = (UW)exit_task;
+  *--pstk = (UW)ext_tsk | 1;
   *--pstk = (UW)0x12121212L;
   *--pstk = (UW)0x03030303L;
   *--pstk = (UW)0x02020202L;

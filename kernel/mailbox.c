@@ -6,7 +6,7 @@
 
 //Check mailbox ID
 #define   CHECK_MBX_ID(mbxid)    \
-  if (mbxid < TMIN_MBXID || mbxid > TMAX_MBXID)  \
+  if (mbxid < TMIN_MBXID || mbxid > (TMAX_MBXID + TRSV_MBXID))  \
     return E_ID;
 
 //Check timeout
@@ -67,7 +67,7 @@ INLINE void kqueue_insert_mpri( T_MSG_PRI *pk_msg, T_MSG *head )
   T_MSG_PRI *msg;
   T_MSG *prevmsg = head;
 
-  while ( (msg = (T_MSG_PRI*)nextmsg(prevmsg)) != NULL ) {
+  while ( (msg = (T_MSG_PRI*)nextmsg(prevmsg)) != (T_MSG_PRI *)0 ) {
     if ( msg->msgpri > pk_msg->msgpri ) {
       break;
     }
@@ -77,19 +77,14 @@ INLINE void kqueue_insert_mpri( T_MSG_PRI *pk_msg, T_MSG *head )
   nextmsg(prevmsg) = pk_msg;
 }
 
-/*
- * Create mailbox
- */
-ER cre_mbx(ID mbxid, T_CMBX *pk_cmbx)
+static ER _cre_mbx(ID mbxid, T_CMBX *pk_cmbx)
 {
   MBXCB *mbxcb;
   ER ercd;
 
-  CHECK_MBX_ID(mbxid)
-
-    if (pk_cmbx->mbxatr !=
-        (pk_cmbx->mbxatr & ((TA_TFIFO|TA_TPRI) | (TA_MFIFO|TA_MPRI))))
-      return E_RSATR;
+  if (pk_cmbx->mbxatr !=
+      (pk_cmbx->mbxatr & ((TA_TFIFO|TA_TPRI) | (TA_MFIFO|TA_MPRI))))
+    return E_RSATR;
 
   mbxcb = get_mbxcb_by_id(mbxid);
 
@@ -101,7 +96,7 @@ ER cre_mbx(ID mbxid, T_CMBX *pk_cmbx)
 
     mbxcb->obj.objatr = pk_cmbx->mbxatr;
     mbxcb->obj.state  = TTS_RDY;
-    mbxcb->mq_head.msgque[0] = NULL;
+    mbxcb->mq_head.msgque[0] = (T_MSG *)0;
 
     ercd = E_OK;
   }
@@ -109,6 +104,33 @@ ER cre_mbx(ID mbxid, T_CMBX *pk_cmbx)
   END_CRITICAL_SECTION;
 
   return ercd;
+}
+
+ER cre_mbx(ID mbxid, T_CMBX *pk_cmbx)
+{
+  CHECK_MBX_ID(mbxid)
+  return _cre_mbx(mbxid, pk_cmbx);
+}
+
+ER_ID acre_mbx(T_CMBX *pk_cmbx)
+{
+  ID i;
+  MBXCB *mbxcb;
+  ER err;
+
+  if (TRSV_MBXID == 0)
+    return E_NOID;
+
+  for (i = TMAX_MBXID + 1; i <= TMAX_MBXID + TRSV_MBXID; i++) {
+    mbxcb = get_mbxcb_by_id(i);
+    if (TTS_NOEXS == mbxcb->obj.state) {
+      err = _cre_mbx(i, pk_cmbx);
+      if (err != E_OK)
+        return (ER_ID)err;
+      return (ER_ID)i;
+    }
+  }
+  return E_NOID;
 }
 /*******************************************************************************
   This service call sends the message whose start address is specified by
@@ -151,8 +173,8 @@ ER __snd_mbx(ID mbxid, T_MSG *pk_msg)
       kqueue_insert_mpri((T_MSG_PRI*)pk_msg, &mbxcb->mq_head); 
     } else {
       //Connect to end of queue
-      nextmsg(pk_msg) = NULL;
-      if ( headmsg(mbxcb) == NULL ) {
+      nextmsg(pk_msg) = (T_MSG *)0;
+      if ( headmsg(mbxcb) == (T_MSG *)0 ) {
         headmsg(mbxcb) = pk_msg;
       } else {
         nextmsg(mbxcb->mq_tail) = pk_msg;
@@ -194,7 +216,7 @@ ER __rcv_mbx(ID mbxid, T_MSG **ppk_msg, TMO tmout)
     // Non-existent object (specified mailbox is not registered)
     runtsk->ercd = E_NOEXS;
   } else {
-    if ( headmsg(mbxcb) != NULL ) {
+    if ( headmsg(mbxcb) != (T_MSG *)0 ) {
       // Get message from head of queue 
       runtsk->ercd = E_OK;
       *ppk_msg = headmsg(mbxcb);
@@ -253,11 +275,35 @@ ER ref_mbx( ID mbxid, T_RMBX *pk_rmbx )
   if (TTS_NOEXS == mbxcb->obj.state) {
     ercd = E_NOEXS;
   } else {
-    pk_rmbx->wtskid = mbxcb->obj.objid;
+    pk_rmbx->wtskid = wait_tskid(&(mbxcb->obj.waitq));
     pk_rmbx->pk_msg = headmsg(mbxcb);
   }
   END_CRITICAL_SECTION;
 
+  return ercd;
+}
+
+ER del_mbx(ID mbxid)
+{
+  MBXCB *mbxcb;
+  ER ercd;
+
+  CHECK_MBX_ID(mbxid);
+
+  BEGIN_CRITICAL_SECTION;
+  mbxcb = get_mbxcb_by_id(mbxid);
+  if (TTS_NOEXS == mbxcb->obj.state) {
+    ercd = E_NOEXS;
+  } else {
+    wait_delete(&(mbxcb->obj.waitq));
+    mbxcb->obj.state = TTS_NOEXS;
+    mbxcb->mq_head.msgque[0] = (T_MSG *)0;
+    ercd = E_OK;
+  }
+  END_CRITICAL_SECTION;
+
+  if (E_OK == ercd)
+    dispatch();
   return ercd;
 }
  

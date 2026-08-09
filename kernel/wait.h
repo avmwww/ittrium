@@ -26,6 +26,7 @@ INLINE
 #endif
 void task_leave_wait(TCB *tcb)
 {
+  tcb->tskwait = 0;
   if (tcb->state == TTS_WAI)
     task_make_ready(tcb);
   else

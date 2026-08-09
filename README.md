@@ -13,10 +13,10 @@ License: [GPL-3.0](LICENSE).
 
 | Object | API (subset) |
 |--------|----------------|
-| Tasks | `cre_tsk` / `act_tsk` / `ext_tsk` / `chg_pri` / `dly_tsk` / `sus_tsk` / `rsm_tsk` |
-| Semaphores | `cre_sem` / `wai_sem` / `sig_sem` (plus ISR variants `i*`) |
-| Eventflags | `cre_flg` / `set_flg` / `wai_flg` / `twai_flg` / `iset_flg` |
-| Mailboxes | `cre_mbx` / `snd_mbx` / `rcv_mbx` |
+| Tasks | `cre_tsk` / `acre_tsk` / `act_tsk` / `iact_tsk` / `ext_tsk` / `del_tsk` / `chg_pri` / `rot_rdq` / `dly_tsk` / `slp_tsk` / `wup_tsk` / `sus_tsk` / `rsm_tsk` |
+| Semaphores | `cre_sem` / `acre_sem` / `del_sem` / `wai_sem` / `sig_sem` / `ref_sem` (plus ISR variants `i*`) |
+| Eventflags | `cre_flg` / `acre_flg` / `del_flg` / `set_flg` / `wai_flg` / `twai_flg` / `iset_flg` / `ref_flg` |
+| Mailboxes | `cre_mbx` / `acre_mbx` / `del_mbx` / `snd_mbx` / `rcv_mbx` / `ref_mbx` |
 | Time | `set_tim` / `get_tim`, system tick |
 
 Context switch, dispatch, and IRQ handling live in the CPU port (`config/<cpu>/`).

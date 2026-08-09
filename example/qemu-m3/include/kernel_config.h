@@ -53,6 +53,12 @@ enum {
 };
 #define TMAX_FLGID    (MAX_FLAG_ID - 1)
 
+enum {
+  DEMO_MBX_ID = TMIN_MBXID,
+  MAX_MBX_ID
+};
+#define TMAX_MBXID    (MAX_MBX_ID - 1)
+
 #define TMAX_MAXSEM              16
 #define TICKER                    1
 #define TMAX_ACTCNT              15

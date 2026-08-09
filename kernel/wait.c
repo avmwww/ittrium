@@ -53,7 +53,7 @@ void wait_delete(KQUEUE *waitq)
 
   while (!kqueue_empty(waitq)) {
     tcb = (TCB *)(waitq->next);
-    *(tcb->wercd) = E_DLT;
+    tcb->ercd = E_DLT;
     wait_release(tcb);
   }
 }

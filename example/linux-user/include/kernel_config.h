@@ -63,6 +63,15 @@ enum {
 };
 #define TMAX_FLGID    (MAX_FLAG_ID - 1)
 
+//==============================================================================
+// Mailboxes
+//==============================================================================
+enum {
+  DEMO_MBX_ID = TMIN_MBXID,
+  MAX_MBX_ID
+};
+#define TMAX_MBXID    (MAX_MBX_ID - 1)
+
 #define TICKER                    1
 #define TMAX_ACTCNT              15
 

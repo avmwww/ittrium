@@ -31,8 +31,7 @@ static void task_entry(uintptr_t tcb_bits)
 
 	cpu_unlock();
 	entry(arg);
-	for (;;)
-		cpu_wait();
+	ext_tsk();
 }
 
 static void idle_entry(void)
