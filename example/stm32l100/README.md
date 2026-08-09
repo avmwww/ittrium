@@ -33,4 +33,5 @@ No VFS/shell/lwIP — kernel-only smoke for the M3 port.
 ## Related
 
 - CPU port: [`config/cortex-m3/`](../../config/cortex-m3/)
+- QEMU smoke (no HAL): [`../qemu-m3/`](../qemu-m3/)
 - Similar M4 USB example: [`../gd32f350/`](../gd32f350/)

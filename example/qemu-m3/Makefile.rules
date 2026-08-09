@@ -1,0 +1,14 @@
+##################################################################
+CROSS_COMPILE ?= arm-none-eabi-
+#
+EXAMPLE_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+KERNEL_DIR ?= $(abspath $(EXAMPLE_DIR)/../..)
+KERNEL_DEV := cortex-m3
+
+CMSIS_ARM_PATH := $(EXAMPLE_DIR)
+
+CFLAGS += -I. -I../include
+FLAGS += -I. -I../include
+FLAGS += -I$(KERNEL_DIR)/config/$(KERNEL_DEV)
+
+include $(KERNEL_DIR)/config/$(KERNEL_DEV)/Makefile.dev

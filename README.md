@@ -71,6 +71,7 @@ ittrium/
 │   └── lwip/          # CFG_USE_LWIP (clone upstream here)
 ├── example/           # boards / demos
 │   ├── qemu-a53/      # QEMU virt — primary A53 bring-up
+│   ├── qemu-m3/       # QEMU lm3s6965evb — Cortex-M3 smoke
 │   ├── linux-user/    # host gcc smoke (no QEMU)
 │   ├── kria-k26/      # Kria K26 SOM (UART1 + GEM3)
 │   ├── stm32l100/ gd32f350/ c55x/ …
@@ -88,7 +89,7 @@ Board glue (UART, clocks, netdev) stays in `example/<board>/`.
 |-----|-----------|-----------|---------|--------|
 | Cortex-A53 (AArch64 EL1, no MMU) | `config/cortex-a53` | `aarch64-none-elf-gcc` | `example/qemu-a53`, `kria-k26` | **Primary** — QEMU smoke-tested; Kria links |
 | Linux userspace | `config/linux-user` | host `gcc` | `example/linux-user` | Host smoke (ucontext + SIGALRM; no QEMU) |
-| Cortex-M3 | `config/cortex-m3` | `arm-none-eabi-gcc` | `example/stm32l100` | Board example (needs CMSIS/HAL) |
+| Cortex-M3 | `config/cortex-m3` | `arm-none-eabi-gcc` | `example/qemu-m3`, `stm32l100` | **QEMU smoke** (`lm3s6965evb`); STM32 board needs CMSIS/HAL |
 | Cortex-M4 (+ optional FPU ctx) | `config/cortex-m4` | `arm-none-eabi-gcc` | `example/gd32f350` | Board example (needs GD32 FW lib) |
 | ARM7 | `config/arm7` | IAR ARM | — | Legacy; context/dispatch cleaned, no board tree |
 | ARM7TDMI | `config/arm7tdmi` | IAR ARM | — | Legacy; task frame aligned with `dispatch.s` |
@@ -139,6 +140,15 @@ cd example/linux-user && make && make run
 ```
 
 Details: [`example/linux-user/README.md`](example/linux-user/README.md).
+
+For **qemu-m3** (Cortex-M3 smoke, no ST HAL):
+
+```bash
+cd example/qemu-m3 && make && make run
+# ends with: qemu-m3 smoke ok
+```
+
+Details: [`example/qemu-m3/README.md`](example/qemu-m3/README.md).
 
 ---
 
@@ -390,8 +400,10 @@ Shell: `ps`, `irq`, `load`.
 ## Example docs
 
 - [`example/qemu-a53/README.md`](example/qemu-a53/README.md) — QEMU virt, virtio-net, shell  
+- [`example/qemu-m3/README.md`](example/qemu-m3/README.md) — QEMU Stellaris LM3S6965, Cortex-M3 smoke  
+- [`example/linux-user/README.md`](example/linux-user/README.md) — host process smoke  
 - [`example/kria-k26/README.md`](example/kria-k26/README.md) — Kria K26 SOM / GEM3 / UART1  
-- [`example/stm32l100/README.md`](example/stm32l100/README.md) — Cortex-M3 kernel smoke (eventflag + GPIO)  
+- [`example/stm32l100/README.md`](example/stm32l100/README.md) — STM32L100 board (needs CMSIS/HAL)  
 - [`example/gd32f350/README.md`](example/gd32f350/README.md) — Cortex-M4 USB CDC  
 - [`example/c55x/README.md`](example/c55x/README.md) — TMS320 C55x eventflag + soft IRQ  
 - [`example/c54_test/README.md`](example/c54_test/README.md) — TMS320 C54x minimal stub  

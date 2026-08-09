@@ -18,9 +18,9 @@ KERNEL_DEV = cortex-m3
 OBJDIR = obj
 LISTDIR = list
 #
-CMSIS = ${CMSIS_ARM_PATH}
-CMSIS_DEV = ${CMSIS_DEV_PATH}
-HAL = ${HAL_PATH}
+CMSIS = $(CMSIS_ARM_PATH)
+CMSIS_DEV = $(CMSIS_DEV_PATH)
+HAL = $(HAL_PATH)
 
 ifeq ($(DEBUG), 1)
 	CFLAGS_OPT := -g -Og
@@ -35,9 +35,19 @@ FLAGS_COMMON := \
 	       -I$(KERNEL_DIR)/include \
 	       -I$(KERNEL_DIR)/config/$(KERNEL_DEV) \
 
-# C flags
+# CMSIS Core required; device/HAL optional (board trees)
+ifneq ($(CMSIS),)
 CFLAGS += -I$(CMSIS)/CMSIS -I$(CMSIS)/CMSIS/Core/Include
-CFLAGS += -I$(CMSIS_DEV)/Include -I$(HAL)/Inc
+endif
+ifneq ($(CMSIS_DEV),)
+CFLAGS += -I$(CMSIS_DEV)/Include
+vpath %.s $(CMSIS_DEV)/Source/Templates/gcc
+vpath %.c $(CMSIS_DEV)/Source/Templates
+endif
+ifneq ($(HAL),)
+CFLAGS += -I$(HAL)/Inc
+vpath %.c $(HAL)/Src
+endif
 
 CFLAGS += $(FLAGS_COMMON) $(CFLAGS_OPT)
 CFLAGS += --specs=nano.specs
@@ -54,33 +64,24 @@ LDFLAGS += -Wl,--start-group -lc -lm -Wl,--end-group
 OBJS = $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
 OBJS += $(patsubst %.s,%_.o,$(filter %.s,$(SRCS)))
 LIST = $(patsubst %.c,%.lst,$(filter %.c,$(SRCS)))
-# Find objects in
 vpath %.o $(OBJDIR)
-# Find listing in
 vpath %.lst $(LISTDIR)
-# cmsis dev sources
-vpath %.s $(CMSIS_DEV)/Source/Templates/gcc
-vpath %.c $(CMSIS_DEV)/Source/Templates
-vpath %.c $(HAL)/Src
-# All
+
 all: sub
-# Create obj directory
+
 $(OBJDIR):
 	$(MKDIR) $(OBJDIR)
-# Create list directory
+
 $(LISTDIR):
 	$(MKDIR) $(LISTDIR)
-# All objects
-# Asm
+
 %_.o: %.s
 	$(ASM) $(FLAGS) $< -o ../$(OBJDIR)/$@
-# C
+
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o ../$(OBJDIR)/$(notdir $@)
 
-# Clean
 clean:
 	$(RM) $(OBJDIR) $(LISTDIR) $(TARGET)
 
-# Naming our phony targets
 .PHONY: all clean sub
