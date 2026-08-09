@@ -13,3 +13,12 @@ list/
 *.lst
 *~
 ittrium-linux-user
+third_party/CMSIS_5/
+third_party/cmsis_device_l1/
+third_party/stm32l1xx_hal_driver/
+third_party/renode_*_portable/
+example/stm32l100/uart.log
+example/stm32l100/renode/shell_test.resc
+example/stm32l100/renode/shell.resc
+example/stm32l100/renode/*.svd.gz
+example/stm32l100/.renode.pid

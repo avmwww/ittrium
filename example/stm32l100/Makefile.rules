@@ -1,15 +1,27 @@
 ##################################################################
-CROSS_COMPILE=arm-none-eabi-
+CROSS_COMPILE ?= arm-none-eabi-
 #
-KERNEL_DIR ?= $(PWD)/../..
+EXAMPLE_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+KERNEL_DIR ?= $(abspath $(EXAMPLE_DIR)/../..)
 KERNEL_DEV := cortex-m3
 
-#
-# C flags
-CFLAGS += -DSTM32L100xB -DUSE_FULL_LL_DRIVER
-CFLAGS +=  -I. -I../include
-# ASM flags
-FLAGS += -I. -I../include
-#
-include $(KERNEL_DIR)/config/$(KERNEL_DEV)/Makefile.dev
+CMSIS_ARM_PATH ?= $(KERNEL_DIR)/third_party/CMSIS_5
+CMSIS_DEV_PATH ?= $(KERNEL_DIR)/third_party/cmsis_device_l1
+HAL_PATH ?= $(KERNEL_DIR)/third_party/stm32l1xx_hal_driver
 
+ifeq ($(wildcard $(CMSIS_ARM_PATH)/CMSIS/Core/Include/core_cm3.h),)
+$(error CMSIS Core missing at $(CMSIS_ARM_PATH). Clone: git clone --depth 1 -b 5.9.0 https://github.com/ARM-software/CMSIS_5.git $(CMSIS_ARM_PATH))
+endif
+ifeq ($(wildcard $(CMSIS_DEV_PATH)/Include/stm32l1xx.h),)
+$(error CMSIS Device L1 missing at $(CMSIS_DEV_PATH). Clone: git clone --depth 1 https://github.com/STMicroelectronics/cmsis_device_l1.git $(CMSIS_DEV_PATH))
+endif
+ifeq ($(wildcard $(HAL_PATH)/Inc/stm32l1xx_hal.h),)
+$(error STM32L1 HAL missing at $(HAL_PATH). Clone: git clone --depth 1 https://github.com/STMicroelectronics/stm32l1xx_hal_driver.git $(HAL_PATH))
+endif
+
+CFLAGS += -DSTM32L100xB -DUSE_FULL_LL_DRIVER
+CFLAGS += -I. -I../include
+FLAGS += -I. -I../include
+FLAGS += -I$(KERNEL_DIR)/config/$(KERNEL_DEV)
+
+include $(KERNEL_DIR)/config/$(KERNEL_DEV)/Makefile.dev

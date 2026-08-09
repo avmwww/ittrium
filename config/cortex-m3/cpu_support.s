@@ -76,19 +76,25 @@ task_idle:
     .thumb_func
 _interrupt_handler:
     cpsid i
+    push {r4, lr}
+    mov r4, r0
+    ldr r1, =irq_count
+    lsls r2, r4, #2
+    ldr r3, [r1, r2]
+    adds r3, #1
+    str r3, [r1, r2]
     ldr r2, =int_nesting
     ldr r3, [r2]
     adds r3, #1
     str r3, [r2]
-    push {lr}
     ldr r1, =int_vector_table
-    lsls r0, r0, #3
+    lsls r0, r4, #3
     adds r1, r0
     ldr r2, [r1]
     cbz r2, no_handler
     blx r2
 no_handler:
-    pop {lr}
+    pop {r4, lr}
     ldr r2, =int_nesting
     ldr r3, [r2]
     subs r3, #1

@@ -1,85 +1,85 @@
-#include <stdio.h>
 #include "ittrium.h"
+#include "target.h"
+#include "drv/console.h"
 
-#define TEST_INT_VEC_NO  2
+#if CFG_USE_SHELL
+#include "shell.h"
+#endif
+#if CFG_USE_VFS
+#include "vfs.h"
+#endif
+#if CFG_USE_ROMFS
+#include "romfs.h"
+#endif
+#if CFG_USE_PROCFS
+#include "procfs.h"
+#endif
 
-short init_tsk_stack[INIT_TASK_STACK_SIZE / sizeof(short)];
-short test_tsk_stack[TEST_TSK_STACK_SIZE / sizeof(short)];
+uint32_t init_tsk_stack[INIT_TASK_STACK_SIZE / sizeof(uint32_t)];
+#if CFG_USE_SHELL
+uint32_t shell_tsk_stack[SHELL_TSK_STACK_SIZE / sizeof(uint32_t)];
+#endif
 
-void uart_init(void);
-
-void test_handler(void)
+#if CFG_USE_SHELL
+static void start_shell(void)
 {
-	iset_flg(TEST_FLG_ID, 0x1234);
-}
+	T_CTSK pk;
 
-__attribute__((naked)) void GPIOA_IRQHandler(void)
-{
-	interrupt_handler(TEST_INT_VEC_NO);
-}
+	shell_set_io(console_putc, console_getc);
 
-void test_tsk(void *exinf)
-{
-	FLGPTN flgptn = 0x1234;
-	unsigned n = 0;
+	pk.tskatr = TA_HLNG | TA_NAME;
+	pk.exinf = 0;
+	pk.task = (FP)shell_task;
+	pk.itskpri = SHELL_TASK_PRIO;
+	pk.stksz = SHELL_TSK_STACK_SIZE;
+	pk.stk = shell_tsk_stack;
+	pk.name = "shell";
 
-	(void)exinf;
-	for (;;) {
-		if (E_OK == twai_flg(TEST_FLG_ID, flgptn, TWF_ORW, &flgptn, 1000)) {
-			printf("flag ready #%u\n", n);
-		} else {
-			printf("flag timeout #%u\n", n);
-		}
-		n++;
-		if (n >= 4) {
-			printf("qemu-m3 smoke ok\n");
-			for (;;)
-				cpu_wait();
-		}
-	}
+	cre_tsk(SHELL_TASK_ID, &pk);
+	act_tsk(SHELL_TASK_ID);
 }
+#endif
 
 void init_tsk(void *exinf)
 {
-	T_CTSK pk_ctsk;
-	T_CFLG pk_cflg;
-	unsigned kick = 0;
-
 	(void)exinf;
 
-	pk_cflg.flgatr = TA_TFIFO | TA_CLR | TA_WMUL;
-	pk_cflg.iflgptn = 0;
-	cre_flg(TEST_FLG_ID, &pk_cflg);
+	uart_init();
+	console_puts("ittrium qemu-m3\n");
 
-	pk_ctsk.tskatr = TA_HLNG;
-	pk_ctsk.exinf = 0;
-	pk_ctsk.task = (FP)test_tsk;
-	pk_ctsk.itskpri = TEST_TASK_PRIO;
-	pk_ctsk.stksz = TEST_TSK_STACK_SIZE;
-	pk_ctsk.stk = test_tsk_stack;
-	pk_ctsk.name = 0;
+#if CFG_USE_VFS
+	console_puts("vfs...\n");
+	vfs_init();
+#endif
+#if CFG_USE_ROMFS
+	console_puts("romfs...\n");
+	{
+		static const char demo_sh[] =
+			"# ittrium demo\n"
+			"echo hello from demo.sh\n"
+			"set DEMO=1\n"
+			"echo DEMO=$DEMO\n";
+		if (romfs_add_builtin("demo.sh", demo_sh, sizeof(demo_sh) - 1) != 0)
+			console_puts("romfs: demo.sh add failed\n");
+	}
+	romfs_mount("/", NULL, 0);
+#endif
+#if CFG_USE_PROCFS
+	console_puts("proc...\n");
+	procfs_mount("/proc");
+#endif
 
-	cre_tsk(TEST_TASK_ID, &pk_ctsk);
-	act_tsk(TEST_TASK_ID);
-
-	install_handler(test_handler, TEST_INT_VEC_NO, 1);
-	NVIC_SetPriority(GPIOA_IRQn, 0x40);
-	NVIC_EnableIRQ(GPIOA_IRQn);
-
+#if CFG_USE_SHELL
+	start_shell();
+#endif
 	chg_pri(TSK_SELF, LOW_PRIO);
 
-	for (;;) {
-		dly_tsk(500);
-		if ((kick++ & 1u) == 0u)
-			NVIC_SetPendingIRQ(GPIOA_IRQn);
-	}
+	for (;;)
+		dly_tsk(10000);
 }
 
 void _low_level_init(void)
 {
-	uart_init();
-	printf("ittrium qemu-m3 (lm3s6965evb)\n");
-
 	SysTick_Config(SystemCoreClock / TIC_DENO);
 	NVIC_SetPriority(SysTick_IRQn, 0x80);
 }

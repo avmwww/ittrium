@@ -3,9 +3,9 @@
 #include "drv/console.h"
 
 #define UART_FIFO_SIZE 128
-
-#define UART_FLG_RX   (1u << 0)
-#define UART_FLG_TX   (1u << 1)
+#define UART_FLG_RX    (1u << 0)
+#define UART_FLG_TX    (1u << 1)
+#define UART_BAUD      115200u
 
 static uint8_t rx_fifo[UART_FIFO_SIZE];
 static uint8_t tx_fifo[UART_FIFO_SIZE];
@@ -62,48 +62,52 @@ static void uart_tx_kick(void)
 {
 	uint8_t b;
 
-	while (!(UART_FR(UART0_BASE) & UART_FR_TXFF) && tx_pop(&b))
-		UART_DR(UART0_BASE) = b;
+	while ((USART1->SR & USART_SR_TXE) && tx_pop(&b))
+		USART1->DR = b;
 
 	if (tx_count)
-		UART_IMSC(UART0_BASE) |= UART_INT_TX;
+		USART1->CR1 |= USART_CR1_TXEIE;
 	else
-		UART_IMSC(UART0_BASE) &= ~UART_INT_TX;
+		USART1->CR1 &= ~USART_CR1_TXEIE;
 }
 
 static void uart_regs_init(void)
 {
+	uint32_t pclk;
+	uint32_t div;
+
 	if (uart_hw_ready)
 		return;
 
-	SYSCTL_RCGC1 |= SYSCTL_RCGC1_UART0;
+	__HAL_RCC_USART1_CLK_ENABLE();
 
-	UART_CTL(UART0_BASE) = 0;
-	/* 115200 8N1 @ 50 MHz: IBRD=27, FBRD=8 */
-	UART_IBRD(UART0_BASE) = 27;
-	UART_FBRD(UART0_BASE) = 8;
-	UART_LCRH(UART0_BASE) = UART_LCRH_WLEN_8 | UART_LCRH_FEN;
-	UART_ICR(UART0_BASE) = 0x7ff;
-	UART_IMSC(UART0_BASE) = 0;
-	UART_CTL(UART0_BASE) = UART_CTL_UARTEN | UART_CTL_TXE | UART_CTL_RXE;
+	USART1->CR1 = 0;
+	USART1->CR2 = 0;
+	USART1->CR3 = 0;
+
+	pclk = HAL_RCC_GetPCLK2Freq();
+	if (pclk == 0)
+		pclk = SystemCoreClock;
+	div = (pclk + (UART_BAUD / 2u)) / UART_BAUD;
+	USART1->BRR = div;
+
+	USART1->CR1 = USART_CR1_TE | USART_CR1_RE | USART_CR1_UE;
 	uart_hw_ready = 1;
 }
 
 static void uart_irq(void)
 {
-	uint32_t mis = UART_MIS(UART0_BASE);
+	uint32_t sr = USART1->SR;
 	FLGPTN set = 0;
 
-	if (mis & (UART_INT_RX | UART_INT_RT)) {
-		while (!(UART_FR(UART0_BASE) & UART_FR_RXFE))
-			rx_push((uint8_t)(UART_DR(UART0_BASE) & 0xffu));
-		UART_ICR(UART0_BASE) = UART_INT_RX | UART_INT_RT;
+	if (sr & USART_SR_RXNE) {
+		while (USART1->SR & USART_SR_RXNE)
+			rx_push((uint8_t)(USART1->DR & 0xffu));
 		if (rx_count)
 			set |= UART_FLG_RX;
 	}
 
-	if (mis & UART_INT_TX) {
-		UART_ICR(UART0_BASE) = UART_INT_TX;
+	if (sr & USART_SR_TXE) {
 		uart_tx_kick();
 		if (tx_count < UART_FIFO_SIZE)
 			set |= UART_FLG_TX;
@@ -113,7 +117,8 @@ static void uart_irq(void)
 		iset_flg(UART_FLG_ID, set);
 }
 
-__attribute__((naked)) void UART0_IRQHandler(void)
+void USART1_IRQHandler(void) __attribute__((naked));
+void USART1_IRQHandler(void)
 {
 	interrupt_handler(UART_VEC_NO);
 }
@@ -132,10 +137,10 @@ void uart_init(void)
 	cre_flg(UART_FLG_ID, &pk_cflg);
 
 	install_handler(uart_irq, UART_VEC_NO, UART_IRQ_PRIO);
-	NVIC_SetPriority(UART0_IRQn, UART_IRQ_PRIO);
-	NVIC_EnableIRQ(UART0_IRQn);
+	NVIC_SetPriority(USART1_IRQn, UART_IRQ_PRIO);
+	NVIC_EnableIRQ(USART1_IRQn);
 
-	UART_IMSC(UART0_BASE) = UART_INT_RX | UART_INT_RT;
+	USART1->CR1 |= USART_CR1_RXNEIE;
 	uart_ready = 1;
 	console_register(&g_console_ops);
 }
@@ -151,9 +156,9 @@ void uart_putc(char c)
 	uart_regs_init();
 
 	if (!uart_ready) {
-		while (UART_FR(UART0_BASE) & UART_FR_TXFF)
+		while (!(USART1->SR & USART_SR_TXE))
 			;
-		UART_DR(UART0_BASE) = (uint32_t)(uint8_t)c;
+		USART1->DR = (uint32_t)(uint8_t)c;
 		return;
 	}
 

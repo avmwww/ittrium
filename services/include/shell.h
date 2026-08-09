@@ -3,13 +3,27 @@
 
 #include "ittrium.h"
 
+#ifndef SHELL_MAX_CMDS
 #define SHELL_MAX_CMDS   32
+#endif
+#ifndef SHELL_LINE_MAX
 #define SHELL_LINE_MAX   192
+#endif
+#ifndef SHELL_HIST_MAX
 #define SHELL_HIST_MAX   16
+#endif
+#ifndef SHELL_MAX_ARGS
 #define SHELL_MAX_ARGS   16
+#endif
+#ifndef SHELL_VAR_MAX
 #define SHELL_VAR_MAX    16
+#endif
+#ifndef SHELL_VAR_NAME
 #define SHELL_VAR_NAME   24
+#endif
+#ifndef SHELL_VAR_VAL
 #define SHELL_VAR_VAL    64
+#endif
 
 typedef int (*shell_cmd_fn)(int argc, char **argv);
 

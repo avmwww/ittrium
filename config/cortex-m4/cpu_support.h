@@ -87,7 +87,7 @@ void _dispatch(void);
 
 typedef uint32_t lock_state_t;
 #define begin_critical_section(_ctx)    do { _ctx = __get_PRIMASK(); cpu_lock(); } while (0)
-#define end_critical_section(_ctx)      do {__set_PRIMASK(ctx);} while (0)
+#define end_critical_section(_ctx)      do { __set_PRIMASK(_ctx); } while (0)
 
 void install_handler(FP handler, INHNO vec_no, UB prio);
 void _int_init(void);

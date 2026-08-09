@@ -1,37 +1,68 @@
 # STM32L100 — Cortex-M3
 
-Minimal board example for `config/cortex-m3`: eventflag wait with timeout, a soft IRQ that sets the flag, and GPIO toggle on **PB12**.
+Shell + VFS/romfs/procfs for `config/cortex-m3`: USART1 (IRQ + eventflag + soft FIFO), GPIO **PB12**.
 
 ## Dependencies
 
+From repo root (defaults for `CMSIS_ARM_PATH` / `CMSIS_DEV_PATH` / `HAL_PATH`):
+
 ```bash
-export CMSIS_ARM_PATH=<path to https://github.com/ARM-software/CMSIS_5>
-export CMSIS_DEV_PATH=<path to https://github.com/STMicroelectronics/cmsis_device_l1>
-export HAL_PATH=<path to https://github.com/STMicroelectronics/stm32l1xx_hal_driver>
+git clone --depth 1 -b 5.9.0 \
+  https://github.com/ARM-software/CMSIS_5.git third_party/CMSIS_5
+git clone --depth 1 \
+  https://github.com/STMicroelectronics/cmsis_device_l1.git third_party/cmsis_device_l1
+git clone --depth 1 \
+  https://github.com/STMicroelectronics/stm32l1xx_hal_driver.git third_party/stm32l1xx_hal_driver
 ```
 
-Toolchain: `arm-none-eabi-gcc` (`CROSS_COMPILE` defaults to `arm-none-eabi-`).
+Toolchain: `arm-none-eabi-gcc`. Emulator: Renode (QEMU has no STM32L100).
 
 ## Build
 
 ```bash
 cd example/stm32l100
-make clean
 make
 ```
 
-Artifact: `test_stm32l1x.out` (linker script `lnk.ld`).
+Artifact: `test_stm32l1x.out`.
 
-## What it does
+## Interactive shell (Renode)
 
-- `init_tsk` creates an eventflag + `test_tsk`, installs IRQ vector `TEST_INT_VEC_NO`
-- `test_tsk` waits on the flag (`twai_flg`, 1 s timeout) and toggles `GPIOB` pin 12
-- Clock/GPIO setup in `_low_level_init()` / `target_clock_init()` (HSI + PLL)
+```bash
+# portable Renode (example default path)
+curl -fsSL -o /tmp/renode.tgz \
+  https://github.com/renode/renode/releases/download/v1.15.3/renode-1.15.3.linux-portable.tar.gz
+tar -xzf /tmp/renode.tgz -C third_party
 
-No VFS/shell/lwIP — kernel-only smoke for the M3 port.
+cd example/stm32l100
+make run
+```
+
+USART1 is on this terminal (`--console` + `uart_connect`), same idea as `qemu -nographic`.
+
+- **Ctrl+C** — stop Renode
+- **ESC** — detach UART → Renode monitor, then `quit`
+
+If a leftover process remains: `make stop`.
+
+Override: `make run RENODE=/path/to/renode`.
+
+## Automated smoke
+
+```bash
+make run-renode
+# injects help / ps / ls / → uart.log → shell smoke ok
+```
+
+## What boots
+
+- SysTick 1 ms (HSI 16 MHz; no HAL_RCC — tick owned by ittrium)
+- USART1: IRQ + `UART_FLG_ID` + soft RX/TX FIFO → console
+- VFS + romfs (`/`) + procfs (`/proc`)
+- shell task: prompt `ittrium>`
 
 ## Related
 
 - CPU port: [`config/cortex-m3/`](../../config/cortex-m3/)
-- QEMU smoke (no HAL): [`../qemu-m3/`](../qemu-m3/)
+- QEMU M3 (no HAL): [`../qemu-m3/`](../qemu-m3/)
 - Similar M4 USB example: [`../gd32f350/`](../gd32f350/)

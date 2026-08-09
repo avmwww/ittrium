@@ -1,118 +1,102 @@
-#include <stdio.h>
 #include "ittrium.h"
+#include "target.h"
+#include "drv/console.h"
 
-/* Scale delays for simulator vs hardware (1 = real time) */
-#define SIMUL_DIV    1
+#if CFG_USE_SHELL
+#include "shell.h"
+#endif
+#if CFG_USE_VFS
+#include "vfs.h"
+#endif
+#if CFG_USE_ROMFS
+#include "romfs.h"
+#endif
+#if CFG_USE_PROCFS
+#include "procfs.h"
+#endif
 
-/* Soft IRQ vector used by the demo (see install_handler) */
-#define TEST_INT_VEC_NO  2
+uint32_t init_tsk_stack[INIT_TASK_STACK_SIZE / sizeof(uint32_t)];
+#if CFG_USE_SHELL
+uint32_t shell_tsk_stack[SHELL_TSK_STACK_SIZE / sizeof(uint32_t)];
+#endif
 
-short init_tsk_stack[INIT_TASK_STACK_SIZE];
-short test_tsk_stack[TEST_TSK_STACK_SIZE];
-
-void test_handler(void)
+#if CFG_USE_SHELL
+static void start_shell(void)
 {
-  iset_flg (TEST_FLG_ID, 0x1234);
+	T_CTSK pk;
+
+	shell_set_io(console_putc, console_getc);
+
+	pk.tskatr = TA_HLNG | TA_NAME;
+	pk.exinf = 0;
+	pk.task = (FP)shell_task;
+	pk.itskpri = SHELL_TASK_PRIO;
+	pk.stksz = SHELL_TSK_STACK_SIZE;
+	pk.stk = shell_tsk_stack;
+	pk.name = "shell";
+
+	cre_tsk(SHELL_TASK_ID, &pk);
+	act_tsk(SHELL_TASK_ID);
 }
-
-void test_tsk(void *exinf)
-{
-  FLGPTN flgptn = 1;
-
-  for (;;) {
-    if (E_OK == twai_flg(TEST_FLG_ID, flgptn, TWF_ORW, &flgptn, 1000/SIMUL_DIV)) {
-      printf("Flag is ready\n");
-    } else {
-      printf("Flag timeout\n");
-    }
-    HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_12);
-  }
-}
-
+#endif
 
 void init_tsk(void *exinf)
 {
-  T_CTSK pk_ctsk;
-  T_CFLG pk_cflg;
+	(void)exinf;
 
-  pk_cflg.flgatr = TA_TFIFO|TA_CLR|TA_WMUL;
-  pk_cflg.iflgptn = 0;
-  cre_flg(TEST_FLG_ID, &pk_cflg);
+	uart_init();
+	console_puts("ittrium stm32l100\n");
 
-  pk_ctsk.tskatr = TA_HLNG;
-  pk_ctsk.exinf = 0;
-  pk_ctsk.task = (FP)test_tsk;
-  pk_ctsk.itskpri = TEST_TASK_PRIO;
-  pk_ctsk.stksz = TEST_TSK_STACK_SIZE;
-  pk_ctsk.stk = test_tsk_stack;
+#if CFG_USE_VFS
+	console_puts("vfs...\n");
+	vfs_init();
+#endif
+#if CFG_USE_ROMFS
+	console_puts("romfs...\n");
+	{
+		static const char demo_sh[] =
+			"# ittrium demo\n"
+			"echo hello from demo.sh\n"
+			"set DEMO=1\n"
+			"echo DEMO=$DEMO\n";
+		if (romfs_add_builtin("demo.sh", demo_sh, sizeof(demo_sh) - 1) != 0)
+			console_puts("romfs: demo.sh add failed\n");
+	}
+	romfs_mount("/", NULL, 0);
+#endif
+#if CFG_USE_PROCFS
+	console_puts("proc...\n");
+	procfs_mount("/proc");
+#endif
 
-  cre_tsk(TEST_TASK_ID, &pk_ctsk);
-  act_tsk(TEST_TASK_ID);
+#if CFG_USE_SHELL
+	start_shell();
+#endif
+	chg_pri(TSK_SELF, LOW_PRIO);
 
-  install_handler(test_handler, TEST_INT_VEC_NO, 1);
-  chg_pri(TSK_SELF, LOW_PRIO);
-
-  for (;;) {
-    dly_tsk(2500/SIMUL_DIV);
-  }
-}
-
-static void Error_Handler(void)
-{
-}
-
-void target_clock_init(void)
-{
-    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-
-    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
-
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-    RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-    RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-    RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL6;
-    RCC_OscInitStruct.PLL.PLLDIV = RCC_PLL_DIV4;
-    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-    {
-        Error_Handler();
-    }
-
-    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-        |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV2;
-    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-
-    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
-    {
-        Error_Handler();
-    }
+	for (;;)
+		dly_tsk(10000);
 }
 
 static void target_gpio_init(void)
 {
-    GPIO_InitTypeDef GPIO_Init;
+	GPIO_InitTypeDef GPIO_Init = {0};
 
-    __HAL_RCC_GPIOB_CLK_ENABLE();
+	__HAL_RCC_GPIOB_CLK_ENABLE();
 
-    GPIO_Init.Pin = GPIO_PIN_12;
-    GPIO_Init.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_Init.Pull = GPIO_NOPULL;
-    GPIO_Init.Speed = GPIO_SPEED_FREQ_LOW;
-    GPIO_Init.Alternate = 0;
-    HAL_GPIO_Init(GPIOB, &GPIO_Init);
+	GPIO_Init.Pin = GPIO_PIN_12;
+	GPIO_Init.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_Init.Pull = GPIO_NOPULL;
+	GPIO_Init.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOB, &GPIO_Init);
 }
-
 
 void _low_level_init(void)
 {
-    HAL_Init();
-
-    //__HAL_RCC_PWR_CLK_ENABLE();
-    target_clock_init();
-    target_gpio_init();
+	/* HSI @ 16 MHz after reset. Skip HAL_RCC — its timeouts need HAL tick,
+	 * while SysTick is owned by ittrium. */
+	SystemCoreClock = 16000000u;
+	SysTick_Config(SystemCoreClock / TIC_DENO);
+	NVIC_SetPriority(SysTick_IRQn, 0x80);
+	target_gpio_init();
 }

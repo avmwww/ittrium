@@ -1,0 +1,23 @@
+using sysbus
+mach create "stm32l100"
+machine LoadPlatformDescription @PLATFORM@
+sysbus LoadELF @ELF@
+sysbus.usart1 CreateFileBackend @UARTLOG@ true
+emulation RunFor "1"
+sysbus.usart1 WriteChar 0x68
+sysbus.usart1 WriteChar 0x65
+sysbus.usart1 WriteChar 0x6C
+sysbus.usart1 WriteChar 0x70
+sysbus.usart1 WriteChar 0x0D
+emulation RunFor "0.5"
+sysbus.usart1 WriteChar 0x70
+sysbus.usart1 WriteChar 0x73
+sysbus.usart1 WriteChar 0x0D
+emulation RunFor "0.5"
+sysbus.usart1 WriteChar 0x6C
+sysbus.usart1 WriteChar 0x73
+sysbus.usart1 WriteChar 0x20
+sysbus.usart1 WriteChar 0x2F
+sysbus.usart1 WriteChar 0x0D
+emulation RunFor "0.5"
+quit

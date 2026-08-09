@@ -70,13 +70,20 @@ typedef enum {
 #define UART_FBRD(base)   (*(volatile uint32_t *)((base) + 0x028))
 #define UART_LCRH(base)   (*(volatile uint32_t *)((base) + 0x02C))
 #define UART_CTL(base)    (*(volatile uint32_t *)((base) + 0x030))
+#define UART_IMSC(base)   (*(volatile uint32_t *)((base) + 0x038))
+#define UART_MIS(base)    (*(volatile uint32_t *)((base) + 0x040))
+#define UART_ICR(base)    (*(volatile uint32_t *)((base) + 0x044))
 
+#define UART_FR_RXFE      (1u << 4)
 #define UART_FR_TXFF      (1u << 5)
 #define UART_LCRH_WLEN_8  (3u << 5)
 #define UART_LCRH_FEN     (1u << 4)
 #define UART_CTL_UARTEN   (1u << 0)
 #define UART_CTL_TXE      (1u << 8)
 #define UART_CTL_RXE      (1u << 9)
+#define UART_INT_RX       (1u << 4)
+#define UART_INT_TX       (1u << 5)
+#define UART_INT_RT       (1u << 6)
 
 extern uint32_t SystemCoreClock;
 

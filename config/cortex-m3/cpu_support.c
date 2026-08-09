@@ -17,7 +17,18 @@ struct ivt_t {
   UW  prio;
 } int_vector_table[32];
 
+volatile UW irq_count[32];
+
 int idle_stack[IDLE_TSK_STACK_SIZE / sizeof(int)];
+
+const char *irq_vec_name(unsigned vec)
+{
+	switch (vec) {
+	case TICKER_VEC_NO: return "timer";
+	case UART_VEC_NO: return "uart";
+	default: return "?";
+	}
+}
 
 static void exit_task(void)
 {
@@ -86,6 +97,7 @@ void _int_init(void)
   for (i = 0;  i < 32; i++) {
     int_vector_table[i].func = (FP)0;
     int_vector_table[i].prio = 0;
+    irq_count[i] = 0;
   }
   NVIC_SetPriority(PendSV_IRQn, 0xFF);
   NVIC_SetPriority(SVCall_IRQn, 0x00);

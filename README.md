@@ -141,11 +141,13 @@ cd example/linux-user && make && make run
 
 Details: [`example/linux-user/README.md`](example/linux-user/README.md).
 
-For **qemu-m3** (Cortex-M3 smoke, no ST HAL):
+For **qemu-m3** (Cortex-M3 shell, no ST HAL):
 
 ```bash
+git clone --depth 1 -b 5.9.0 \
+  https://github.com/ARM-software/CMSIS_5.git third_party/CMSIS_5
 cd example/qemu-m3 && make && make run
-# ends with: qemu-m3 smoke ok
+# ittrium> on the QEMU console
 ```
 
 Details: [`example/qemu-m3/README.md`](example/qemu-m3/README.md).
@@ -403,7 +405,7 @@ Shell: `ps`, `irq`, `load`.
 - [`example/qemu-m3/README.md`](example/qemu-m3/README.md) — QEMU Stellaris LM3S6965, Cortex-M3 smoke  
 - [`example/linux-user/README.md`](example/linux-user/README.md) — host process smoke  
 - [`example/kria-k26/README.md`](example/kria-k26/README.md) — Kria K26 SOM / GEM3 / UART1  
-- [`example/stm32l100/README.md`](example/stm32l100/README.md) — STM32L100 board (needs CMSIS/HAL)  
+- [`example/stm32l100/README.md`](example/stm32l100/README.md) — STM32L100 / Renode shell (USART1)  
 - [`example/gd32f350/README.md`](example/gd32f350/README.md) — Cortex-M4 USB CDC  
 - [`example/c55x/README.md`](example/c55x/README.md) — TMS320 C55x eventflag + soft IRQ  
 - [`example/c54_test/README.md`](example/c54_test/README.md) — TMS320 C54x minimal stub  

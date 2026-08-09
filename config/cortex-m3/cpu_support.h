@@ -87,11 +87,13 @@ void _dispatch(void);
 
 typedef uint32_t lock_state_t;
 #define begin_critical_section(_ctx)    do { _ctx = __get_PRIMASK(); cpu_lock(); } while (0)
-#define end_critical_section(_ctx)      do {__set_PRIMASK(ctx);} while (0)
+#define end_critical_section(_ctx)      do { __set_PRIMASK(_ctx); } while (0)
 
 void install_handler(FP handler, INHNO vec_no, UB prio);
 void _int_init(void);
 void low_level_init(void);
+extern volatile UW irq_count[32];
+const char *irq_vec_name(unsigned vec);
 
 /* Clear the timer interrupt */
 #define CLEAR_TICKER_INT()      NVIC_ClearPendingIRQ(SysTick_IRQn)
@@ -99,10 +101,10 @@ void low_level_init(void);
 #define ENABLE_TICKER_INT()     NVIC_EnableIRQ(SysTick_IRQn)
 
 #define TICKER_PRIO             1
-// Internal ittrium vector numbers
 enum {
     DISPATCH_VEC_NO = 0,
     TICKER_VEC_NO,
+    UART_VEC_NO,
     VEC_NO_LAST,
 };
 
