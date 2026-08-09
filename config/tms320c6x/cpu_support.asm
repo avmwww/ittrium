@@ -130,10 +130,12 @@ __interrupt_handler:
         NOP     4
         ; SP
   [B1]  STW     .D2T2   SP,*+B1(TCB_sp)
-        ; New stack pointer
-        MVKL   (__int_stack + INT_STACK_LEN - 4)&(~7), SP
-        MVKH   (__int_stack + INT_STACK_LEN - 4)&(~7), SP
-        ;AND   ~7,SP,SP
+        ; New stack pointer (EABI: no relocatable expressions)
+        MVKL   __int_stack, SP
+        MVKH   __int_stack, SP
+        MVK    (INT_STACK_LEN - 4), B1
+        ADD    .L2  SP, B1, SP
+        AND    .S2  ~7, SP, SP
         ; Call interrupt handler
         MVKL    .S2     __int_vector_table, B1
         MVKH    .S2     __int_vector_table, B1
@@ -213,9 +215,11 @@ restore_context:
 ;*******************************************************************************
         .global __idle_task
 __idle_task:
-        ; New stack pointer
-        MVKL   __int_stack + INT_STACK_LEN - 4, SP
-        MVKH   __int_stack + INT_STACK_LEN - 4, SP
+        ; New stack pointer (EABI: no relocatable expressions)
+        MVKL   __int_stack, SP
+        MVKH   __int_stack, SP
+        MVK    (INT_STACK_LEN - 4), B1
+        ADD    .L2  SP, B1, SP
         ; Enable interrupts
         MVC     .S2     CSR,B4
         OR      .S2     1,B4,B1
@@ -1479,7 +1483,10 @@ _c6201_Restor
 
 
 ;*******************************************************************************
+; Legacy COFF CRT dump (broken absolute branches / EABI-incompatible).
+; Smoke and CGT 8.x use RTS boot via linker -c.
 ;*******************************************************************************
+        .if 0
 __stack .usect ".stack", 8, 8
         .text
         .global __STACK_SIZE
@@ -1540,7 +1547,7 @@ __stack .usect ".stack", 8, 8
         NOP       4
         B        .S2X   A1
         MVK      .S2    0xffffb1f4,B3
-        MVKH     .S2    0x10000,B30001B1F0 00004000            NOP           30001B1F4 00A83264            LDW.D1T1      *++A10[0x1],A10001B1F8 00006000            NOP           40001B1FC 80000090     [ A1]  B.S1          0x1B1E40001B200 00008000            NOP           50001B204 053C23E5            LDDW.D2T1     *+SP[0x1],A11:A100001B208 01B401A2  ||        MV.S2         B13,B30001B20C 000C0363            B.S2          B30001B210 06BC22E6  ||        LDW.D2T2      *+SP[0x1],B130001B214 063C92E4            LDW.D2T1      *++SP[0x4],A120001B218 00006000            NOP           40001B21C 00000000            
+        MVKH     .S2    0x10000,B3
         NOP
 ;*******************************************************************************
 ; _c_int00
@@ -1548,30 +1555,16 @@ __stack .usect ".stack", 8, 8
         .newblock
         .global _c_int00
 _c_int00:
-;-------------------------------------------------------------------------------
-; SET UP THE STACK POINTER IN B15.
-; THE STACK POINTER POINTS 1 WORD PAST THE TOP OF THE STACK, SO SUBTRACT
-; 1 WORD FROM THE SIZE. ALSO THE SP MUST BE ALIGNED ON AN 8-BYTE BOUNDARY
-;-------------------------------------------------------------------------------
         MVKL     .S2    __stack + __STACK_SIZE - 4, SP
         MVKH     .S2    __stack + __STACK_SIZE - 4, SP
         AND      .S2    ~7,SP,SP
-;-------------------------------------------------------------------------------
-; SET UP THE GLOBAL PAGE POINTER IN B14.
-;-------------------------------------------------------------------------------
         MVKL     .S2    $bss,DP
         MVKH     .S2    $bss,DP
-;-------------------------------------------------------------------------------
-; SET UP FLOATING POINT REGISTERS FOR C70 ONLY
-;-------------------------------------------------------------------------------
         .if .TMS320C6700 = 1
         ZERO     .D2    B4
         MVC      .S2    B4,FADCR
         MVC      .S2    B4,FMCR
         .endif
-;-------------------------------------------------------------------------------
-; CALL THE AUTOINITIALIZATION ROUTINE.
-;-------------------------------------------------------------------------------
         B               __auto_init
         MVK      .S1    ___cinit__,A4
         MVK      .S2    rp0?,B3
@@ -1579,24 +1572,16 @@ _c_int00:
         MVKH     .S2    rp0?,B3
         NOP
 rp0?:
-;-------------------------------------------------------------------------------
-; CALL THE USER'S PROGRAM.
-;-------------------------------------------------------------------------------
         B               _main
         MVK      .S2    rp1?,B3
         MVKH     .S2    rp1?,B3
         NOP       3
 rp1?:
-;-------------------------------------------------------------------------------
-; IDLE
-;-------------------------------------------------------------------------------
         B         __idle_task
         NOP       5
-
+        .endif
 
         .bss __int_vector_table, 4*16, 32
-        .bss _schedtsk, 4, 32
-        .bss _runtsk, 4, 32
 ;*******************************************************************************
         .text
 _int_init:

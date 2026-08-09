@@ -10,22 +10,12 @@ typedef struct kqueue {
   struct kqueue *prev;
 } KQUEUE;
 
-#ifdef INLINE_PRAGMA
-#pragma inline
-#else
-INLINE
-#endif
-void kqueue_init(KQUEUE *queue)
+static inline void kqueue_init(KQUEUE *queue)
 {
   queue->prev = queue->next = queue;
 }
 
-#ifdef INLINE_PRAGMA
-#pragma inline
-#else
-INLINE
-#endif
-void kqueue_insert(KQUEUE *entry, KQUEUE *queue)
+static inline void kqueue_insert(KQUEUE *entry, KQUEUE *queue)
 {
   entry->prev = queue->prev;
   entry->next = queue;
@@ -33,12 +23,7 @@ void kqueue_insert(KQUEUE *entry, KQUEUE *queue)
   queue->prev = entry;
 }
 
-#ifdef INLINE_PRAGMA
-#pragma inline
-#else
-INLINE
-#endif
-void kqueue_remove(KQUEUE *entry)
+static inline void kqueue_remove(KQUEUE *entry)
 {
   if (entry->next != entry) {
     entry->prev->next = entry->next;
@@ -46,12 +31,7 @@ void kqueue_remove(KQUEUE *entry)
   }
 }
 
-#ifdef INLINE_PRAGMA
-#pragma inline
-#else
-INLINE
-#endif
-KQUEUE *kqueue_remove_next(KQUEUE *queue)
+static inline KQUEUE *kqueue_remove_next(KQUEUE *queue)
 {
   KQUEUE *entry;
 
@@ -61,7 +41,7 @@ KQUEUE *kqueue_remove_next(KQUEUE *queue)
   return(entry);
 }
 /*
-INLINE KQUEUE *queue_search_gt(KQUEUE *queue, INT val, INT offset)
+static KQUEUE *queue_search_gt(KQUEUE *queue, INT val, INT offset)
 {
   KQUEUE *entry;
 
@@ -74,12 +54,7 @@ INLINE KQUEUE *queue_search_gt(KQUEUE *queue, INT val, INT offset)
 }
 */
 
-#ifdef INLINE_PRAGMA
-#pragma inline
-#else
-INLINE
-#endif
-BOOL kqueue_empty(KQUEUE *queue)
+static inline BOOL kqueue_empty(KQUEUE *queue)
 {
   if (queue->next == queue) return(TRUE);
   else return(FALSE);

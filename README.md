@@ -91,13 +91,13 @@ Board glue (UART, clocks, netdev) stays in `example/<board>/`.
 | Linux userspace | `config/linux-user` | host `gcc` | `example/linux-user` | Host smoke (ucontext + SIGALRM; no QEMU) |
 | Cortex-M3 | `config/cortex-m3` | `arm-none-eabi-gcc` | `example/qemu-m3`, `stm32l100` | **QEMU smoke** (`lm3s6965evb`); STM32 board needs CMSIS/HAL |
 | Cortex-M4 (+ optional FPU ctx) | `config/cortex-m4` | `arm-none-eabi-gcc` | `example/gd32f350` | Board example (needs GD32 FW lib) |
-| ARM7 | `config/arm7` | IAR ARM | — | Legacy; context/dispatch cleaned, no board tree |
-| ARM7TDMI | `config/arm7tdmi` | IAR ARM | — | Legacy; task frame aligned with `dispatch.s` |
-| LPC288x | `config/lpc288x` | IAR ARM | — | Legacy; same model as ARM7TDMI |
-| M16C/62 | `config/m16c62` | IAR M16C | — | Legacy; IAR-oriented |
+| ARM7 | `config/arm7` | IAR ARM | `example/arm7` | Legacy; IAR/EW project (no host `make` link) |
+| ARM7TDMI | `config/arm7tdmi` | IAR ARM | `example/arm7tdmi` | Legacy; IAR smoke layout |
+| LPC288x | `config/lpc288x` | IAR ARM | `example/lpc288x` | Legacy; IAR smoke + board stubs |
+| M16C/62 | `config/m16c62` | IAR M16C | `example/m16c62` | Legacy; IAR-oriented smoke |
 | TMS320 C54x | `config/tms320c54x` | TI C54x | `example/c54_test` | CCS/simulator |
 | TMS320 C55x | `config/tms320c55x` | TI `cl55` | `example/c55x` | Builds with CCS 4.4.x |
-| TMS320 C6x / C67x+ | `config/tms320c6x`, `tms320c67px` | TI C6000 | — | Legacy DSP ports |
+| TMS320 C6x / C67x+ | `config/tms320c6x`, `tms320c67px` | TI C6000 | `example/c6x`, `c67px` | Smoke builds with CGT 8.x (`-mv6740` ELF) |
 
 A new CPU means a new `config/` directory plus an `example/`.  
 A new board on an existing CPU is usually only `example/<board>/` (see [Porting](#porting)).
@@ -409,6 +409,12 @@ Shell: `ps`, `irq`, `load`.
 - [`example/gd32f350/README.md`](example/gd32f350/README.md) — Cortex-M4 USB CDC  
 - [`example/c55x/README.md`](example/c55x/README.md) — TMS320 C55x eventflag + soft IRQ  
 - [`example/c54_test/README.md`](example/c54_test/README.md) — TMS320 C54x minimal stub  
+- [`example/c6x/README.md`](example/c6x/README.md) — TMS320 C6x smoke (`cl6x`)  
+- [`example/c67px/README.md`](example/c67px/README.md) — TMS320 C67x+ smoke (`cl6x`)  
+- [`example/arm7/README.md`](example/arm7/README.md) — ARM7 IAR smoke  
+- [`example/arm7tdmi/README.md`](example/arm7tdmi/README.md) — ARM7TDMI IAR smoke  
+- [`example/lpc288x/README.md`](example/lpc288x/README.md) — LPC288x IAR smoke  
+- [`example/m16c62/README.md`](example/m16c62/README.md) — M16C/62 IAR smoke  
 
 ---
 

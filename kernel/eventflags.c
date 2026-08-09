@@ -35,12 +35,7 @@ void eventflag_initialize(void)
   }
 }
 //==============================================================================
-#ifdef INLINE_PRAGMA
-#pragma inline
-#else
-INLINE
-#endif
-BOOL eventflag_cond(FLGCB *flgcb, FLGPTN waiptn, MODE wfmode)
+static BOOL eventflag_cond(FLGCB *flgcb, FLGPTN waiptn, MODE wfmode)
 {
   if (wfmode & TWF_ORW)
     return((flgcb->flgptn & waiptn) != 0);
@@ -48,12 +43,7 @@ BOOL eventflag_cond(FLGCB *flgcb, FLGPTN waiptn, MODE wfmode)
     return((flgcb->flgptn & waiptn) == waiptn);
 }
 //==============================================================================
-#ifdef INLINE_PRAGMA
-#pragma inline
-#else
-INLINE
-#endif
-void clear_flgptn(FLGCB *flgcb)
+static void clear_flgptn(FLGCB *flgcb)
 {
   if (flgcb->obj.objatr & TA_CLR)
      flgcb->flgptn = 0;
@@ -96,12 +86,13 @@ ER cre_flg(ID flgid, T_CFLG *pk_cflg)
 
 ER_ID acre_flg(T_CFLG *pk_cflg)
 {
+#if TRSV_FLGID == 0
+  (void)pk_cflg;
+  return E_NOID;
+#else
   ID i;
   FLGCB *flgcb;
   ER err;
-
-  if (TRSV_FLGID == 0)
-    return E_NOID;
 
   for (i = TMAX_FLGID + 1; i <= TMAX_FLGID + TRSV_FLGID; i++) {
     flgcb = get_flgcb_by_id(i);
@@ -113,6 +104,7 @@ ER_ID acre_flg(T_CFLG *pk_cflg)
     }
   }
   return E_NOID;
+#endif
 }
 //==============================================================================
 ER _set_flg(ID flgid, FLGPTN setptn)

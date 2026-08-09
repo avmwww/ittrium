@@ -101,3 +101,8 @@ void _int_init(void)
 {
   init_interrupt();
 }
+
+void install_handler(FP handler, INHNO vec_no)
+{
+  _install_handler(handler, vec_no);
+}

@@ -100,12 +100,7 @@ void task_make_dormant(TCB *tcb)
    }
 }
 
-#ifdef INLINE_PRAGMA
-#pragma inline
-#else
-INLINE
-#endif
-void reschedule(void)
+static void reschedule(void)
 {
   TCB   *toptsk;
 

@@ -4,7 +4,7 @@ CROSS_COMPILE=arm-none-eabi-
 KERNEL_DIR ?= $(PWD)/../..
 KERNEL_DEV := cortex-m4
 #
-GD32_FW ?= $(PWD)/gd32_f3x0_firmware
+GD32_FW ?= $(KERNEL_DIR)/third_party/gd32_f3x0_firmware/Firmware
 GD32_STD_PERIPH = $(GD32_FW)/GD32F3x0_standard_peripheral
 GD32_USB_LIB = $(GD32_FW)/GD32F3x0_usbfs_library
 GD32_CMSIS=$(GD32_FW)/CMSIS

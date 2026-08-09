@@ -484,6 +484,7 @@ skip_save_context:
 ;*******************************************************************************
         .newblock
         .global _make_task_context
+        .ref _ext_tsk
 _make_task_context:
         MOV dbl(*AR0(#TCB_stk)), XAR1
         MOV dbl(*AR0(#TCB_sstk)), XAR2
@@ -498,7 +499,7 @@ _make_task_context:
         ; ST1_55
         MOV #0x6100, *AR1-
         MOV dbl(*AR0(#TCB_task)), AC0
-        ; CFCT:RETA(23-16)
+        ; CFCT:RETA(23-16) — task entry
         MOV HI(AC0), *AR2-
         ; RETA(15-0)
         MOV AC0, *AR1-
@@ -516,22 +517,17 @@ _make_task_context:
          MOV #0, *AR2-
 end_clear_stack?:
 
-;        AMAR *+AR1(#-46)
-;        AMAR *+AR2(#-46)
-        ; // ST3_55
+        ; ST3_55
         MOV #0x5C04, *AR1-
         MOV #0, *AR2-
-        ; CFCT:RETA(23-16)
-        MOV HI(AC0), *AR2
-        ; RETA(15-0)
-        MOV AC0, *AR1
+        ; Return address when task body returns -> ext_tsk
+        AMOV #_ext_tsk, XAR3
+        MOV XAR3, AC1
+        MOV HI(AC1), *AR2
+        MOV AC1, *AR1
         ;
         MOV XAR1, dbl(*AR0(#TCB_sp))
         MOV XAR2, dbl(*AR0(#TCB_ssp))
-;TCB_task
-;TCB_stk 
-;TCB_sstk
-;TCB_stksz
 
         RET
 ;*******************************************************************************

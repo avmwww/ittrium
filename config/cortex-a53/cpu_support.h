@@ -58,8 +58,6 @@ typedef struct {
 	VP pc;
 } CTXB;
 
-#define INLINE static inline
-
 void dispatch(void);
 
 static inline void cpu_lock(void)

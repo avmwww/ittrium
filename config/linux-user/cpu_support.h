@@ -66,8 +66,6 @@ typedef struct {
 	VP arg;
 } CTXB;
 
-#define INLINE static inline
-
 void dispatch(void);
 
 extern sigset_t linux_user_irq_sigset;

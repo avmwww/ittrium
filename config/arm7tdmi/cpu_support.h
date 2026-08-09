@@ -59,9 +59,6 @@ typedef struct {
 
 
 #if 1
-// For IAR compiler inline used as pragma directive
-# define INLINE_PRAGMA
-# define INLINE inline
 // IAR Compiler
 extern void dispatch(void);
 //# define dispatch()               dispath()
@@ -77,7 +74,6 @@ extern void dispatch(void);
 # define cpu_restore_lock_state()  __set_interrupt_state(cpu_lock_state)
 
 #else
-# define INLINE inline
 // Don't switch from User stack(don't care flag U)
 #define dispatch()    asm("   INT #0")
 // Switch from User stack(clear flag U)
@@ -98,6 +94,8 @@ extern void dispatch(void);
 
 void _install_handler(FP handler, INHNO vec_no);
 #define low_level_init()
+
+void install_handler(FP handler, INHNO vec_no);
 
 #endif // _CPU_SUPPORT_H_
 

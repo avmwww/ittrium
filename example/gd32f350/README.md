@@ -4,14 +4,14 @@ Board example for `config/cortex-m4`: USB FS **CDC** echo device, with an FPU-ca
 
 ## Dependencies
 
-```bash
-export GD32_FW=<path to https://github.com/DmitryTyazhlov/GD32F3x0_Firmware_Library_V2.3.0>
-```
+Default firmware path (no env needed if present):
 
-Example:
+`third_party/gd32_f3x0_firmware/Firmware`
+
+Override if needed:
 
 ```bash
-export GD32_FW=~/GD32F3x0_Firmware_Library_V2.3.0
+export GD32_FW=<path to Firmware/ of https://github.com/DmitryTyazhlov/GD32F3x0_Firmware_Library_V2.3.0>
 cd example/gd32f350
 make clean
 make

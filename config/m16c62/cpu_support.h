@@ -61,9 +61,6 @@ typedef struct {
 
 
 #ifdef __ICCM16C__
-// For IAR compiler inline used as pragma directive
-# define INLINE_PRAGMA
-# define INLINE static
 // IAR Compiler
 //# define dispatch()               __break()
 # define dispatch()             __software_interrupt(0);
@@ -84,7 +81,6 @@ typedef struct {
 #endif // 0
 
 #else
-# define INLINE inline
 // Don't switch from User stack(don't care flag U)
 #define dispatch()    asm("   INT #0")
 // Switch from User stack(clear flag U)
@@ -105,6 +101,8 @@ typedef struct {
 
 void _install_handler(FP handler, INHNO vec_no);
 #define low_level_init()
+
+void install_handler(FP handler, INHNO vec_no);
 
 #endif // _CPU_SUPPORT_H_
 

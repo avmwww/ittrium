@@ -196,9 +196,12 @@ __interrupt_handler:
         NOP     4
         ; SP
   [B1]  STW     .D2T2   SP,*+B1(TCB_sp)
-        ; New stack pointer
-        MVKL   (__int_stack + INT_STACK_LEN - 4)&(~7), SP
-        MVKH   (__int_stack + INT_STACK_LEN - 4)&(~7), SP
+        ; New stack pointer (EABI: no relocatable expressions)
+        MVKL   __int_stack, SP
+        MVKH   __int_stack, SP
+        MVK    (INT_STACK_LEN - 4), B1
+        ADD    .L2  SP, B1, SP
+        AND    .S2  ~7, SP, SP
         ;
         ; Call interrupt handler
         MVKL    .S2     __int_vector_table, B1
@@ -311,9 +314,11 @@ restore_context:
 ;*******************************************************************************
         .global __idle_task
 __idle_task:
-        ; New stack pointer
-        MVKL   __int_stack + INT_STACK_LEN - 4, SP
-        MVKH   __int_stack + INT_STACK_LEN - 4, SP
+        ; New stack pointer (EABI: no relocatable expressions)
+        MVKL   __int_stack, SP
+        MVKH   __int_stack, SP
+        MVK    (INT_STACK_LEN - 4), B1
+        ADD    .L2  SP, B1, SP
         ; Enable interrupts
         MVC     .S2     CSR,B4
         OR      .S2     1,B4,B1

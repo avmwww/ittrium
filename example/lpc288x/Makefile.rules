@@ -1,0 +1,23 @@
+##################################################################
+# Smoke example for config/lpc288x
+# Requires IAR Embedded Workbench tools on PATH (iccarm / aarm / etc.),
+# or set IAR_ARM_DIR / IAR_M16C_DIR to the compiler bin directory.
+KERNEL_DIR ?= $(PWD)/../..
+KERNEL_DEV = lpc288x
+OBJDIR = obj
+RM = rm -rf
+MKDIR = mkdir -p
+#
+# Default recipe is a clear error — wire your IAR project or override CC/ASM/LNK.
+ifeq ($(IAR_BUILD),1)
+include Makefile.iar
+else
+all:
+	@echo "example/lpc288x: set IAR_BUILD=1 after configuring Makefile.iar,"
+	@echo "or open an EWARM/EWM16C project pointing at config/lpc288x."
+	@echo "Sources: kernel/ittrium.c + config/lpc288x/cpu_support.* + src/src/test.c"
+	@false
+endif
+clean:
+	$(RM) $(OBJDIR) $(TARGET)
+.PHONY: all clean

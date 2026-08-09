@@ -102,3 +102,8 @@ void _int_init(void)
 
 }
 
+
+void install_handler(FP handler, INHNO vec_no)
+{
+  _install_handler(handler, vec_no);
+}

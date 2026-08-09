@@ -62,7 +62,7 @@ void mailbox_initialize()
 /*
  * Insert a message queue following priority
  */
-INLINE void kqueue_insert_mpri( T_MSG_PRI *pk_msg, T_MSG *head )
+static void kqueue_insert_mpri( T_MSG_PRI *pk_msg, T_MSG *head )
 {
   T_MSG_PRI *msg;
   T_MSG *prevmsg = head;
@@ -114,12 +114,13 @@ ER cre_mbx(ID mbxid, T_CMBX *pk_cmbx)
 
 ER_ID acre_mbx(T_CMBX *pk_cmbx)
 {
+#if TRSV_MBXID == 0
+  (void)pk_cmbx;
+  return E_NOID;
+#else
   ID i;
   MBXCB *mbxcb;
   ER err;
-
-  if (TRSV_MBXID == 0)
-    return E_NOID;
 
   for (i = TMAX_MBXID + 1; i <= TMAX_MBXID + TRSV_MBXID; i++) {
     mbxcb = get_mbxcb_by_id(i);
@@ -131,6 +132,7 @@ ER_ID acre_mbx(T_CMBX *pk_cmbx)
     }
   }
   return E_NOID;
+#endif
 }
 /*******************************************************************************
   This service call sends the message whose start address is specified by

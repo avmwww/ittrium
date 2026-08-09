@@ -52,7 +52,6 @@ typedef UINT           FLGPTN; // Bit pattern of the eventflag (unsigned integer
 typedef UH              INHNO; // Interrupt handler number
 typedef UH              INTNO; // Interrupt number
 //******************************************************************************
-#define INLINE         inline
 // int is 32 bits long, bitmap = 32 bits, shift = 5
 #define BITMAPSHIFT          5
 

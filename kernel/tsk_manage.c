@@ -96,11 +96,12 @@ ER cre_tsk(ID tskid, T_CTSK *pk_ctsk)
  */
 ER_ID acre_tsk(T_CTSK *pk_ctsk)
 {
+#if TRSV_TSKID == 0
+  (void)pk_ctsk;
+  return E_NOID;
+#else
   ID i;
   ER er;
-
-  if (TRSV_TSKID == 0)
-    return E_NOID;
 
   for (i = TMAX_TSKID + 1; i <= TMAX_TSKID + TRSV_TSKID; i++) {
     if (TTS_NOEXS == get_tcb(i)->state) {
@@ -111,6 +112,7 @@ ER_ID acre_tsk(T_CTSK *pk_ctsk)
     }
   }
   return E_NOID;
+#endif
 }
 
 /*

@@ -1,0 +1,53 @@
+##################################################################
+ASM = cl6x
+CC  = cl6x
+LNK = lnk6x
+RM  = rm -rf
+MKDIR = mkdir -p
+#
+KERNEL_DIR ?= $(PWD)/../..
+KERNEL_DEV = tms320c6x
+C6X_CGTOOLS ?= $(firstword \
+  $(wildcard $(HOME)/ti/ccs_avm/ti-cgt-c6000_8.1.2) \
+  $(wildcard $(HOME)/ti/ccsv7/ti-cgt-c6000_8.1.2) \
+  $(wildcard /home/avm/ti/ccs_avm/ti-cgt-c6000_8.1.2) \
+  $(wildcard /home/avm/ti/ccsv7/ti-cgt-c6000_8.1.2))
+ifneq ($(C6X_CGTOOLS),)
+export PATH := $(C6X_CGTOOLS)/bin:$(PATH)
+CG6_DIR := $(C6X_CGTOOLS)
+else
+CG6_DIR := $(shell dirname $(shell dirname `which $(CC) 2>/dev/null`))
+endif
+ifeq ($(wildcard $(CG6_DIR)/bin/$(CC)),)
+$(error TI C6000 tools not found. Set C6X_CGTOOLS or put cl6x on PATH)
+endif
+#
+OBJDIR = obj
+LISTDIR = list
+# Historical port targets C6700 (CGT ≤7.4). Smoke build uses C6740 on CGT 8.x.
+DEVREV ?= 6740
+#
+CFLAGS = -q -eo.o -O3 -mv$(DEVREV) --strip_coff_underscore -fr../$(OBJDIR) -fs../$(LISTDIR)
+CFLAGS += -I. -I../include -I$(KERNEL_DIR)/include -I$(KERNEL_DIR)/config/$(KERNEL_DEV)
+CFLAGS += -I$(CG6_DIR)/include
+FLAGS = -q -mv$(DEVREV) --strip_coff_underscore -fr../$(OBJDIR) -eo.o
+FLAGS += -I$(KERNEL_DIR)/include -I$(KERNEL_DIR)/config/$(KERNEL_DEV)
+LDFLAGS = -i$(CG6_DIR)/lib -lrts6740_elf.lib
+#
+OBJS = $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
+OBJS += $(patsubst %.asm,%_.o,$(filter %.asm,$(SRCS)))
+vpath %.o ../$(OBJDIR)
+#
+all: sub
+$(OBJDIR):
+	$(MKDIR) $(OBJDIR)
+$(LISTDIR):
+	$(MKDIR) $(LISTDIR)
+%_.o: %.asm
+	$(ASM) $(FLAGS) $<
+	mv -f ../$(OBJDIR)/$(*F).o ../$(OBJDIR)/$@
+%.o: %.c
+	$(CC) $(CFLAGS) $<
+clean:
+	$(RM) $(OBJDIR) $(LISTDIR) $(TARGET)
+.PHONY: all clean

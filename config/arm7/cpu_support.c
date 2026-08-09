@@ -104,3 +104,8 @@ void low_level_init(void)
 {
   _int_init();
 }
+
+void install_handler(FP handler, INHNO vec_no, UB prio)
+{
+  _install_handler(handler, vec_no, prio);
+}

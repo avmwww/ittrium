@@ -59,8 +59,6 @@ typedef struct {
   VP   pc;
 } CTXB;
 
-#define INLINE static inline
-
 void _dispatch(void);
 #if 1
 # define dispatch()                 do {SCB->ICSR |= SCB_ICSR_PENDSVSET_Msk;} while (0)
@@ -74,11 +72,6 @@ void _dispatch(void);
 #define cpu_wait()                 __WFI();
 #define cpu_store_lock_state()     uint32_t primask_bit = __get_PRIMASK()
 #define cpu_restore_lock_state()   __set_PRIMASK(primask_bit)
-
-#ifdef IAR
-// For IAR compiler inline used as pragma directive
-# define INLINE_PRAGMA
-#endif
 
 //------------------------------------------------------------------------------
 

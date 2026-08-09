@@ -12,8 +12,21 @@ MKDIR = mkdir -p
 #
 KERNEL_DIR ?= $(PWD)/../..
 KERNEL_DEV = tms320c55x
-CG55_BIN_DIR = $(shell dirname `which $(CC)`)
-CG55_DIR = $(shell dirname $(CG55_BIN_DIR))
+# TI C55x codegen: C55X_CGTOOLS, else common installs, else cl55 on PATH
+C55X_CGTOOLS ?= $(firstword \
+  $(wildcard $(HOME)/ti/cc55_cgt/c5500_4.4.1) \
+  $(wildcard /home/avm/ti/cc55_cgt/c5500_4.4.1) \
+  $(wildcard /opt/ti/cc55_cgt/c5500_4.4.1))
+ifneq ($(C55X_CGTOOLS),)
+export PATH := $(C55X_CGTOOLS)/bin:$(PATH)
+CG55_DIR := $(C55X_CGTOOLS)
+else
+CG55_BIN_DIR := $(shell dirname `which $(CC) 2>/dev/null`)
+CG55_DIR := $(shell dirname $(CG55_BIN_DIR) 2>/dev/null)
+endif
+ifeq ($(wildcard $(CG55_DIR)/bin/$(CC)),)
+$(error TI C55x tools not found. Set C55X_CGTOOLS to c5500_4.4.1 root or put cl55 on PATH)
+endif
 #
 OBJDIR = obj
 LISTDIR = list
@@ -47,7 +60,6 @@ $(OBJDIR):
 # Create list directory
 $(LISTDIR):
 	$(MKDIR) $(LISTDIR)
-# All objects
 # Asm
 %_.o: %.a55
 	$(ASM) $(FLAGS) $< ../$(OBJDIR)/$@
@@ -59,5 +71,4 @@ $(LISTDIR):
 clean:
 	$(RM) $(OBJDIR) $(LISTDIR) $(TARGET)
 
-# Naming our phony targets
 .PHONY: all clean

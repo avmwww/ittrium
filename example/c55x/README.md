@@ -2,15 +2,19 @@
 
 Kernel smoke for `config/tms320c55x` using the TI C55x codegen tools (`cl55` / `lnk55` / `masm55`).
 
-Typical target: CCS C5500 toolchain (e.g. `c5500_4.4.1`) with `cl55` on `PATH`.
+Typical target: CCS C5500 toolchain (e.g. `c5500_4.4.1`).
 
 ## Build
 
 ```bash
+# optional if tools are not on PATH:
+# export C55X_CGTOOLS=$HOME/ti/cc55_cgt/c5500_4.4.1
 cd example/c55x
 make clean
 make
 ```
+
+`Makefile.rules` looks for `C55X_CGTOOLS`, then common install paths, then `cl55` on `PATH`.
 
 Artifact: `test55x.out` (linker command file `lnkx.cmd`).
 

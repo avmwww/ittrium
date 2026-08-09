@@ -75,12 +75,13 @@ ER cre_sem(ID semid, T_CSEM *pk_csem)
  */
 ER_ID acre_sem(T_CSEM *pk_csem)
 {
+#if TRSV_SEMID == 0
+  (void)pk_csem;
+  return E_NOID;
+#else
   ID i;
   SEMCB *semcb;
   ER err;
-
-  if (TRSV_SEMID == 0)
-    return E_NOID;
 
   for (i = TMAX_SEMID + 1; i < TMAX_SEMID + TRSV_SEMID + 1; i++) {
     semcb = get_semcb_by_id(i);
@@ -92,6 +93,7 @@ ER_ID acre_sem(T_CSEM *pk_csem)
     }
   }
   return E_NOID;
+#endif
 }
 
 static ER __wai_sem(ID semid, TMO tmout)

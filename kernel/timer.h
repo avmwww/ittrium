@@ -26,12 +26,7 @@ extern void timer_insert_rel(TMEB *event, SYSTIM *time, FP_VP callback, VP arg);
 /**
  * Delete timer event from timer event queue
  */
-#ifdef INLINE_PRAGMA
-#pragma inline
-#else
-INLINE
-#endif
-void timer_delete(TMEB *event)
+static inline void timer_delete(TMEB *event)
 {
   kqueue_remove(&(event->queue));
 }

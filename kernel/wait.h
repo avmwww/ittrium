@@ -19,12 +19,7 @@ extern void wait_release_tmout(TCB *tcb);
  * WAITING          : READY
  * WAITING-SUSPENDED: SUSPENDED
  */
-#ifdef INLINE_PRAGMA
-#pragma inline
-#else
-INLINE
-#endif
-void task_leave_wait(TCB *tcb)
+static inline void task_leave_wait(TCB *tcb)
 {
   tcb->tskwait = 0;
   if (tcb->state == TTS_WAI)
@@ -33,35 +28,20 @@ void task_leave_wait(TCB *tcb)
     tcb->state = TTS_SUS;
 }
 
-#ifdef INLINE_PRAGMA
-#pragma inline
-#else
-INLINE
-#endif
-void wait_release(TCB *tcb)
+static inline void wait_release(TCB *tcb)
 {
   timer_delete(&(tcb->wtmeb));
   kqueue_remove(&(tcb->qnode));
   task_leave_wait(tcb);
 }
 
-#ifdef INLINE_PRAGMA
-#pragma inline
-#else
-INLINE
-#endif
-void wait_cancel(TCB *tcb)
+static inline void wait_cancel(TCB *tcb)
 {
   timer_delete(&(tcb->wtmeb));
   kqueue_remove(&(tcb->qnode));
 }
 
-#ifdef INLINE_PRAGMA
-#pragma inline
-#else
-INLINE
-#endif
-KQUEUE *kqueue_find_pri(KQUEUE *queue, PRI prio)
+static inline KQUEUE *kqueue_find_pri(KQUEUE *queue, PRI prio)
 {
   KQUEUE *entry;
 
@@ -73,12 +53,7 @@ KQUEUE *kqueue_find_pri(KQUEUE *queue, PRI prio)
   return(entry);
 }
 
-#ifdef INLINE_PRAGMA
-#pragma inline
-#else
-INLINE
-#endif
-void kqueue_insert_pri(TCB *tcb, KQUEUE *queue)
+static inline void kqueue_insert_pri(TCB *tcb, KQUEUE *queue)
 {
    KQUEUE   *q;
 
@@ -86,12 +61,7 @@ void kqueue_insert_pri(TCB *tcb, KQUEUE *queue)
    kqueue_insert(&(tcb->qnode), q);
 }
 
-#ifdef INLINE_PRAGMA
-#pragma inline
-#else
-INLINE
-#endif
-void obj_change_pri(OBJCB *gcb, TCB *tcb)
+static inline void obj_change_pri(OBJCB *gcb, TCB *tcb)
 {
    kqueue_remove(&(tcb->qnode));
    kqueue_insert_pri(tcb, &(gcb->waitq));
