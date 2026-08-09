@@ -38,7 +38,7 @@ cd example/stm32l100
 make run
 ```
 
-USART1 is attached to this terminal via `socat` (same idea as `qemu -nographic`). **Ctrl+C** stops Renode.
+USART1 is attached to this terminal via `socat` (same idea as `qemu -nographic`). **Ctrl+C** stops the session (SIGINT; not sent to the guest).
 
 If a leftover process remains: `make stop`.
 
