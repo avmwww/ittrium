@@ -43,7 +43,7 @@ int shell_getc(void)
 
 void shell_printf(const char *fmt, ...)
 {
-  /* Minimal formatter: supports %s %u %d %% only (no libc snprintf — nano can hang). */
+  /* Minimal formatter: %s %u %d %x %X %% (no libc snprintf — nano can hang). */
   va_list ap;
   const char *p;
 
@@ -80,6 +80,21 @@ void shell_printf(const char *fmt, ...)
         while (v) {
           tmp[i++] = (char)('0' + (v % 10u));
           v /= 10u;
+        }
+        while (i--)
+          shell_putc(tmp[i]);
+      }
+    } else if (*p == 'x' || *p == 'X') {
+      unsigned v = va_arg(ap, unsigned);
+      char tmp[16];
+      int i = 0;
+      const char *digits = (*p == 'X') ? "0123456789ABCDEF" : "0123456789abcdef";
+      if (v == 0) {
+        shell_putc('0');
+      } else {
+        while (v) {
+          tmp[i++] = digits[v & 0xfu];
+          v >>= 4;
         }
         while (i--)
           shell_putc(tmp[i]);
@@ -451,9 +466,14 @@ void shell_init_builtins(void)
   shell_register(".",     "run commands from file", cmd_source);
   shell_register("history","show command history", cmd_history);
   shell_net_register();
+  shell_board_register();
 }
 
 __attribute__((weak)) void shell_net_register(void)
+{
+}
+
+__attribute__((weak)) void shell_board_register(void)
 {
 }
 

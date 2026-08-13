@@ -38,44 +38,140 @@ static void print_mac(const u8_t *m)
   }
 }
 
-static int cmd_ifconfig(int argc, char **argv)
+static void print_netif(struct netif *nif)
+{
+  char name[3];
+
+  name[0] = nif->name[0];
+  name[1] = nif->name[1];
+  name[2] = '\0';
+  shell_puts(name);
+  shell_printf("%u: ", (unsigned)nif->num);
+  if (netif_is_up(nif))
+    shell_puts("UP ");
+  else
+    shell_puts("DOWN ");
+  if (netif_is_link_up(nif))
+    shell_puts("LINK ");
+  shell_puts("mtu=");
+  shell_printf("%u\r\n", (unsigned)nif->mtu);
+
+  shell_puts("  inet ");
+  print_ip4(netif_ip4_addr(nif));
+  shell_puts(" netmask ");
+  print_ip4(netif_ip4_netmask(nif));
+  shell_puts(" gw ");
+  print_ip4(netif_ip4_gw(nif));
+  shell_puts("\r\n");
+
+  if (nif->hwaddr_len == 6) {
+    shell_puts("  ether ");
+    print_mac(nif->hwaddr);
+    shell_puts("\r\n");
+  }
+}
+
+static int netif_name_match(struct netif *nif, const char *s)
+{
+  unsigned n = 0;
+  unsigned i = 0;
+
+  if (!s || !s[0] || !s[1])
+    return 0;
+  if (s[0] != nif->name[0] || s[1] != nif->name[1])
+    return 0;
+  if (s[2] == '\0')
+    return nif->num == 0;
+  while (s[2 + i] >= '0' && s[2 + i] <= '9') {
+    n = n * 10u + (unsigned)(s[2 + i] - '0');
+    if (n > 255u)
+      return 0;
+    i++;
+  }
+  return (s[2 + i] == '\0') && (nif->num == (u8_t)n);
+}
+
+static struct netif *netif_by_name(const char *s)
 {
   struct netif *nif;
 
-  (void)argc;
-  (void)argv;
+  NETIF_FOREACH(nif) {
+    if (netif_name_match(nif, s))
+      return nif;
+  }
+  return (struct netif *)0;
+}
+
+static int cmd_ifconfig(int argc, char **argv)
+{
+  struct netif *nif;
+  ip4_addr_t ip, mask, gw;
+  int have_ip = 0, have_mask = 0, have_gw = 0;
+  int do_up = 0, do_down = 0;
+  int i;
+
+  if (argc <= 1) {
+    LOCK_TCPIP_CORE();
+    NETIF_FOREACH(nif)
+      print_netif(nif);
+    UNLOCK_TCPIP_CORE();
+    return 0;
+  }
 
   LOCK_TCPIP_CORE();
-  NETIF_FOREACH(nif) {
-    char name[3];
-    name[0] = nif->name[0];
-    name[1] = nif->name[1];
-    name[2] = '\0';
-    shell_puts(name);
-    shell_printf("%u: ", (unsigned)nif->num);
-    if (netif_is_up(nif))
-      shell_puts("UP ");
-    else
-      shell_puts("DOWN ");
-    if (netif_is_link_up(nif))
-      shell_puts("LINK ");
-    shell_puts("mtu=");
-    shell_printf("%u\r\n", (unsigned)nif->mtu);
+  nif = netif_by_name(argv[1]);
+  if (!nif) {
+    UNLOCK_TCPIP_CORE();
+    shell_puts("ifconfig: no such iface\r\n");
+    return -1;
+  }
 
-    shell_puts("  inet ");
-    print_ip4(netif_ip4_addr(nif));
-    shell_puts(" netmask ");
-    print_ip4(netif_ip4_netmask(nif));
-    shell_puts(" gw ");
-    print_ip4(netif_ip4_gw(nif));
-    shell_puts("\r\n");
+  if (argc == 2) {
+    print_netif(nif);
+    UNLOCK_TCPIP_CORE();
+    return 0;
+  }
 
-    if (nif->hwaddr_len == 6) {
-      shell_puts("  ether ");
-      print_mac(nif->hwaddr);
-      shell_puts("\r\n");
+  ip4_addr_set_u32(&ip, ip4_addr_get_u32(netif_ip4_addr(nif)));
+  ip4_addr_set_u32(&mask, ip4_addr_get_u32(netif_ip4_netmask(nif)));
+  ip4_addr_set_u32(&gw, ip4_addr_get_u32(netif_ip4_gw(nif)));
+
+  for (i = 2; i < argc; i++) {
+    if (strcmp(argv[i], "up") == 0) {
+      do_up = 1;
+    } else if (strcmp(argv[i], "down") == 0) {
+      do_down = 1;
+    } else if (strcmp(argv[i], "netmask") == 0) {
+      if (++i >= argc || !ip4addr_aton(argv[i], &mask)) {
+        UNLOCK_TCPIP_CORE();
+        shell_puts("ifconfig: bad netmask\r\n");
+        return -1;
+      }
+      have_mask = 1;
+    } else if (strcmp(argv[i], "gw") == 0 || strcmp(argv[i], "gateway") == 0) {
+      if (++i >= argc || !ip4addr_aton(argv[i], &gw)) {
+        UNLOCK_TCPIP_CORE();
+        shell_puts("ifconfig: bad gw\r\n");
+        return -1;
+      }
+      have_gw = 1;
+    } else if (ip4addr_aton(argv[i], &ip)) {
+      have_ip = 1;
+    } else {
+      UNLOCK_TCPIP_CORE();
+      shell_puts("ifconfig: usage: ifconfig [iface [ip] [netmask m] [gw g] [up|down]]\r\n");
+      return -1;
     }
   }
+
+  if (have_ip || have_mask || have_gw)
+    netif_set_addr(nif, &ip, &mask, &gw);
+  if (do_down)
+    netif_set_down(nif);
+  if (do_up)
+    netif_set_up(nif);
+
+  print_netif(nif);
   UNLOCK_TCPIP_CORE();
   return 0;
 }
@@ -246,7 +342,7 @@ static int cmd_ping(int argc, char **argv)
 
 void shell_net_register(void)
 {
-  shell_register("ifconfig", "show network interfaces", cmd_ifconfig);
+  shell_register("ifconfig", "show/set iface (ip netmask gw up|down)", cmd_ifconfig);
   shell_register("arp", "show ARP table", cmd_arp);
 #if LWIP_RAW && LWIP_ICMP
   shell_register("ping", "ICMP echo (ping <ip>)", cmd_ping);

@@ -39,6 +39,7 @@ void shell_printf(const char *fmt, ...);
 int shell_register(const char *name, const char *help, shell_cmd_fn fn);
 void shell_init_builtins(void);
 void shell_net_register(void); /* weak stub if no lwIP */
+void shell_board_register(void); /* weak stub; board overlay cmds */
 void shell_task(void *exinf);
 
 /* Parse/expand/run one line (mutates a local copy). Returns last status. */
